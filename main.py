@@ -165,9 +165,22 @@ def analyze_tweet_sentiment(api_key, text):
     }
     
     system_prompt = (
-        "You are a financial analysis assistant. Your task is to analyze the user's tweet and return a JSON object.\n"
-        "1. Extract all stock and crypto tickers mentioned (e.g. BTC, SOL, TSLA). If none are found, return an empty array.\n"
-        "2. Classify the sentiment signal as exactly one of: 'buy', 'sell', 'bullish', 'bearish', 'neutral'.\n"
+        "You are an expert financial analyst. Analyze the user's tweet and return a JSON object.\n\n"
+        "1. Extract all stock and crypto tickers mentioned (e.g. BTC, SOL, TSLA). If none are found, return an empty array [].\n"
+        "2. Classify the sentiment signal as exactly one of: 'buy', 'sell', 'bullish', 'bearish', 'neutral'.\n\n"
+        "CRITICAL CLASSIFICATION RULES:\n"
+        "- 'buy': Use ONLY if the poster explicitly states they are actively executing a trade, entering, or adding to a position "
+        "(e.g., 'bought some', 'adding spot here', 'filled orders', 'going long', 'accumulating').\n"
+        "- 'sell': Use ONLY if the poster explicitly states they are executing a trade to exit or short a position "
+        "(e.g., 'sold', 'took profit', 'shorting', 'exited').\n"
+        "- 'bullish': Use if the poster has a positive view, technical breakout, or target price, but does NOT explicitly state they executed a trade.\n"
+        "- 'bearish': Use if the poster has a negative view, chart breakdown, or downside target, but does NOT explicitly state they executed a trade.\n"
+        "- 'neutral': Use for general news, discussion, or updates with no clear directional bias.\n\n"
+        "FEW-SHOT EXAMPLES:\n"
+        "- Tweet: 'Added some spot $BB at $6.13' -> Signal: 'buy'\n"
+        "- Tweet: 'BTC looks primed for a breakout to 100k soon' -> Signal: 'bullish'\n"
+        "- Tweet: 'Exited my Solana position entirely' -> Signal: 'sell'\n"
+        "- Tweet: 'ETH is looking weak, expect further downside' -> Signal: 'bearish'\n\n"
         "Format the output strictly as raw JSON with keys 'tickers' (array of strings) and 'signal' (string).\n"
         "Do not include markdown blocks or any text outside of the raw JSON."
     )
