@@ -32,14 +32,24 @@ graph TD
 
 ### B. Database Layer (SQLite)
 - **File**: `tweets.db`
-- **Table**: `processed_tweets`
-- **Schema**:
-  - `tweet_id` (TEXT, PRIMARY KEY): Used to uniquely identify the tweet and prevent duplicate processing.
-  - `username` (TEXT): The Twitter handle of the poster.
-  - `text` (TEXT): The body of the tweet.
-  - `ticker` (TEXT): Comma-separated list of identified tickers.
-  - `signal` (TEXT): Classification of the tweet (one of `buy`, `sell`, `bullish`, `bearish`, `neutral`).
-  - `processed_at` (TIMESTAMP): Automatically records the processing date and time.
+- **Tables**:
+  - `processed_tweets`: Caches tweets and extraction results.
+    - **Schema**:
+      - `tweet_id` (TEXT, PRIMARY KEY): Used to uniquely identify the tweet and prevent duplicate processing.
+      - `username` (TEXT): The Twitter handle of the poster.
+      - `text` (TEXT): The body of the tweet.
+      - `tickers` (TEXT): Comma-separated list of identified tickers.
+      - `signal` (TEXT): Classification of the tweet (one of `buy`, `sell`, `bullish`, `bearish`, `neutral`).
+      - `processed_at` (TIMESTAMP): Automatically records the processing date and time.
+  - `tracker_runs`: Records execution metrics for each tracker run.
+    - **Schema**:
+      - `id` (INTEGER, PRIMARY KEY AUTOINCREMENT): Unique row identifier.
+      - `timestamp` (TIMESTAMP): Automatically records when the run occurred.
+      - `tweets_processed` (INTEGER): Number of new tweets successfully processed during the run.
+      - `model_used` (TEXT): The model name used for sentiment classification (e.g. `xai/grok-4-1-fast-non-reasoning`).
+      - `total_input_tokens` (INTEGER): Total prompt tokens consumed during the run.
+      - `total_output_tokens` (INTEGER): Total completion tokens consumed during the run.
+      - `total_cost` (REAL): Total execution cost in USD.
 
 ### C. Sentiment Analysis & Extraction (LiteLLM Wrapper)
 - **Multi-Model Integration**: Invokes a dynamic model via LiteLLM specified by `ACTIVE_MODEL` in the environment configuration (e.g., `xai/grok-4-1-fast-non-reasoning`, `gemini/gemini-2.5-flash`).

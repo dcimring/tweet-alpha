@@ -29,6 +29,31 @@ def init_db():
             processed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS tracker_runs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            tweets_processed INTEGER,
+            model_used TEXT,
+            total_input_tokens INTEGER,
+            total_output_tokens INTEGER,
+            total_cost REAL
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+def save_run_record(tweets_processed, model_used, total_input_tokens, total_output_tokens, total_cost):
+    """Record a run execution's metadata in the local SQLite database."""
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        INSERT INTO tracker_runs (tweets_processed, model_used, total_input_tokens, total_output_tokens, total_cost)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (tweets_processed, model_used, total_input_tokens, total_output_tokens, total_cost)
+    )
     conn.commit()
     conn.close()
 
@@ -262,8 +287,17 @@ def run_tracker(list_id, api_key, webhook_url):
         if not is_tweet_processed(parsed["id"]):
             unprocessed_tweets.append(parsed)
 
+    model = os.getenv("ACTIVE_MODEL", "xai/grok-4-1-fast-non-reasoning")
+
     if not unprocessed_tweets:
         print("No new tweets to process.")
+        save_run_record(
+            tweets_processed=0,
+            model_used=model,
+            total_input_tokens=0,
+            total_output_tokens=0,
+            total_cost=0.0
+        )
         return
 
     print(f"Found {len(unprocessed_tweets)} new tweet(s) to process. Running Grok reasoning analysis...")
@@ -276,6 +310,7 @@ def run_tracker(list_id, api_key, webhook_url):
     total_prompt_tokens = 0
     total_completion_tokens = 0
     total_cost = 0.0
+    successful_processed_count = 0
 
     for item in unprocessed_tweets:
         tweet_id = item["id"]
@@ -299,6 +334,7 @@ def run_tracker(list_id, api_key, webhook_url):
             
             # Cache results in local SQLite database
             save_processed_tweet(tweet_id, username, text, tickers, signal)
+            successful_processed_count += 1
             
             # Dispatch alerts for buy & sell signals
             if signal in ["buy", "sell"] and webhook_url:
@@ -307,6 +343,15 @@ def run_tracker(list_id, api_key, webhook_url):
         except Exception as e:
             print(f"Error processing tweet {tweet_id} by @{username}: {e}", file=sys.stderr)
             # Do NOT cache in db if analysis failed, so we can retry next time
+
+    # Save run record to database
+    save_run_record(
+        tweets_processed=successful_processed_count,
+        model_used=model,
+        total_input_tokens=total_prompt_tokens,
+        total_output_tokens=total_completion_tokens,
+        total_cost=total_cost
+    )
 
     if unprocessed_tweets:
         print("\n" + "=" * 65)
