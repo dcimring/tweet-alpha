@@ -7,7 +7,12 @@ import sqlite3
 import subprocess
 import argparse
 import requests
+import logging
 from datetime import datetime, timedelta
+
+# Suppress LiteLLM provider dependency warnings
+logging.getLogger("LiteLLM").setLevel(logging.ERROR)
+
 from dotenv import load_dotenv
 from litellm import completion, completion_cost
 
