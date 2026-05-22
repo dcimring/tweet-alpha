@@ -7,6 +7,7 @@ import sqlite3
 import subprocess
 import argparse
 import requests
+from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from litellm import completion, completion_cost
 
@@ -262,7 +263,8 @@ def send_discord_alert(webhook_url, username, tweet_id, text, tickers, signal):
 
 def run_tracker(list_id, api_key, webhook_url):
     """Query, filter, analyze, cache, and dispatch new list tweets."""
-    print(f"\n--- Checking X List {list_id} ---")
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print(f"\n--- [{now_str}] Checking X List {list_id} ---")
     try:
         raw_tweets = fetch_tweets(list_id)
     except Exception as e:
@@ -393,7 +395,9 @@ def main():
             except Exception as e:
                 print(f"Error in execution loop: {e}", file=sys.stderr)
             
-            print("Sleeping for 1 hour...")
+            next_run = datetime.now() + timedelta(hours=1)
+            next_run_str = next_run.strftime("%Y-%m-%d %H:%M:%S")
+            print(f"Sleeping for 1 hour... (Next run at: {next_run_str})")
             try:
                 time.sleep(3600)
             except KeyboardInterrupt:
