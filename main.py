@@ -8,6 +8,7 @@ import subprocess
 import argparse
 import requests
 from dotenv import load_dotenv
+from litellm import completion, completion_cost
 
 # Load environment variables
 load_dotenv()
@@ -156,13 +157,9 @@ def clean_grok_response(response_text):
     return text.strip()
 
 def analyze_tweet_sentiment(api_key, text):
-    """Send tweet text to xAI Grok API for ticker extraction and sentiment signal classification.
-    Returns (analysis_dict, prompt_tokens, completion_tokens)."""
-    url = "https://api.x.ai/v1/chat/completions"
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
-    }
+    """Send tweet text to LiteLLM for ticker extraction and sentiment classification.
+    Returns (analysis_dict, prompt_tokens, completion_tokens, call_cost)."""
+    model = os.getenv("ACTIVE_MODEL", "xai/grok-4-1-fast-non-reasoning")
     
     system_prompt = (
         "You are an expert financial analyst. Analyze the user's tweet and return a JSON object.\n\n"
@@ -185,26 +182,28 @@ def analyze_tweet_sentiment(api_key, text):
         "Do not include markdown blocks or any text outside of the raw JSON."
     )
     
-    payload = {
-        "model": "grok-4-1-fast-reasoning",
-        "messages": [
+    response = completion(
+        model=model,
+        messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": f"Analyze this tweet: \"{text}\""}
         ]
-    }
+    )
     
-    response = requests.post(url, headers=headers, json=payload, timeout=30)
-    response.raise_for_status()
-    
-    res_data = response.json()
-    content = res_data["choices"][0]["message"]["content"]
+    content = response.choices[0].message.content
     cleaned_content = clean_grok_response(content)
     
-    usage = res_data.get("usage", {})
+    usage = response.get("usage", {})
     prompt_tokens = usage.get("prompt_tokens", 0)
     completion_tokens = usage.get("completion_tokens", 0)
     
-    return json.loads(cleaned_content), prompt_tokens, completion_tokens
+    try:
+        call_cost = completion_cost(completion_response=response) or 0.0
+    except Exception:
+        # Fallback to 0.0 cost if the model is brand new or unmapped in LiteLLM's local db
+        call_cost = 0.0
+    
+    return json.loads(cleaned_content), prompt_tokens, completion_tokens, call_cost
 
 def send_discord_alert(webhook_url, username, tweet_id, text, tickers, signal):
     """Send a rich embed message to a Discord webhook for high-importance (buy/sell) signals."""
@@ -270,6 +269,7 @@ def run_tracker(list_id, api_key, webhook_url):
 
     total_prompt_tokens = 0
     total_completion_tokens = 0
+    total_cost = 0.0
 
     for item in unprocessed_tweets:
         tweet_id = item["id"]
@@ -277,10 +277,11 @@ def run_tracker(list_id, api_key, webhook_url):
         text = item["text"]
         
         try:
-            # Perform sentiment analysis using Grok
-            analysis, p_tokens, c_tokens = analyze_tweet_sentiment(api_key, text)
+            # Perform sentiment analysis using LiteLLM
+            analysis, p_tokens, c_tokens, call_cost = analyze_tweet_sentiment(api_key, text)
             total_prompt_tokens += p_tokens
             total_completion_tokens += c_tokens
+            total_cost += call_cost
             
             tickers = analysis.get("tickers", [])
             signal = analysis.get("signal", "neutral").lower()
@@ -302,17 +303,12 @@ def run_tracker(list_id, api_key, webhook_url):
             # Do NOT cache in db if analysis failed, so we can retry next time
 
     if unprocessed_tweets:
-        # Calculate cost based on Grok 4.1 Fast Pricing: Input $0.20/1M, Output $0.50/1M
-        input_cost = (total_prompt_tokens * 0.20) / 1_000_000
-        output_cost = (total_completion_tokens * 0.50) / 1_000_000
-        total_cost = input_cost + output_cost
-        
         print("\n" + "=" * 65)
         print("                    API USAGE & COST SUMMARY")
         print("=" * 65)
-        print(f"Input Tokens:  {total_prompt_tokens:<10,} Cost: ${input_cost:.6f}")
-        print(f"Output Tokens: {total_completion_tokens:<10,} Cost: ${output_cost:.6f}")
-        print(f"Total Cost:    ${total_cost:.6f}")
+        print(f"Input Tokens:  {total_prompt_tokens:<10,}")
+        print(f"Output Tokens: {total_completion_tokens:<10,}")
+        print(f"Total Cost:    ${total_cost:.6f} (dynamic lookup)")
         print("=" * 65)
 
 def main():

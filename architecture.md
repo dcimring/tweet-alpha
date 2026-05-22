@@ -13,7 +13,7 @@ graph TD
     A[Timer / Loop / CLI Trigger] --> B[Fetch List Timeline via bird CLI]
     B --> C[Parse Tweets JSON]
     C --> D[Filter Unprocessed Tweets via SQLite]
-    D -->|New Tweets Only| E[Analyze Sentiment with grok-4-1-fast-reasoning]
+    D -->|New Tweets Only| E[Analyze Sentiment via LiteLLM]
     E --> F[Extract Ticker & Signal]
     F --> G[Save Tweet & Results to SQLite]
     F --> H[Show Consolidated Console Table]
@@ -41,10 +41,10 @@ graph TD
   - `signal` (TEXT): Classification of the tweet (one of `buy`, `sell`, `bullish`, `bearish`, `neutral`).
   - `processed_at` (TIMESTAMP): Automatically records the processing date and time.
 
-### C. Sentiment Analysis & Extraction (xAI Grok API)
-- **Endpoint**: `https://api.x.ai/v1/chat/completions`
-- **Model**: `grok-4-1-fast-reasoning`
-- **Prompt Specification**: Commands the reasoning model to perform financial analysis, extract any cryptos/stocks symbols, and return a clean, unadorned JSON object containing keys:
+### C. Sentiment Analysis & Extraction (LiteLLM Wrapper)
+- **Multi-Model Integration**: Invokes a dynamic model via LiteLLM specified by `ACTIVE_MODEL` in the environment configuration (e.g., `xai/grok-4-1-fast-non-reasoning`, `gemini/gemini-2.5-flash`).
+- **Dynamic Cost Tracking**: Calls built-in `completion_cost()` on completion responses to query model pricing metadata and calculate EXACT USD execution costs dynamically per run.
+- **Prompt Specification**: Commands the selected model to perform financial analysis, extract any stock/crypto symbols, and return a clean, unadorned JSON object containing keys:
   - `"tickers"`: List of upper-case strings (e.g. `["BTC", "SOL"]`)
   - `"signal"`: Sentiment classification string (`"buy"`, `"sell"`, `"bullish"`, `"bearish"`, or `"neutral"`)
 - **JSON Sanitization**: Robustly strips markdown wrappers (such as ```json) before passing results to the JSON parser.
