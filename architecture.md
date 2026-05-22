@@ -43,7 +43,7 @@ graph TD
 
 ### C. Sentiment Analysis & Extraction (LiteLLM Wrapper)
 - **Multi-Model Integration**: Invokes a dynamic model via LiteLLM specified by `ACTIVE_MODEL` in the environment configuration (e.g., `xai/grok-4-1-fast-non-reasoning`, `gemini/gemini-2.5-flash`).
-- **Dynamic Cost Tracking**: Calls built-in `completion_cost()` on completion responses to query model pricing metadata and calculate EXACT USD execution costs dynamically per run.
+- **Dynamic Cost Tracking**: Uses `genai-prices` first to calculate precise USD execution costs dynamically per run using exact, updated market pricing databases. Falls back to LiteLLM's internal `completion_cost()` and finally `0.0` if the target model is unmapped in the `genai-prices` database.
 - **Prompt Specification**: Commands the selected model to perform financial analysis, extract any stock/crypto symbols, and return a clean, unadorned JSON object containing keys:
   - `"tickers"`: List of upper-case strings (e.g. `["BTC", "SOL"]`)
   - `"signal"`: Sentiment classification string (`"buy"`, `"sell"`, `"bullish"`, `"bearish"`, or `"neutral"`)
@@ -62,6 +62,16 @@ graph TD
   - **Green (`0x00FF00`)**: For `buy` signals.
   - **Red (`0xFF0000`)**: For `sell` signals.
 - Includes fields detailing the poster, tickers, tweet content, and a direct clickable URL back to the tweet on X.
+
+### F. Model Cost Viewer Utility (`model_costs.py`)
+- **Purpose**: A standalone command-line tool to inspect and compare token pricing (input and output costs) across diverse LLMs supported by LiteLLM.
+- **Features**:
+  - Dynamically extracts pricing metadata from `genai-prices` snapshot database first for absolute accuracy.
+  - Falls back to `litellm.model_cost` internal pricing if `genai-prices` lookup fails.
+  - Formats costs per **1 million tokens** for easy visualization.
+  - Displays context window sizes (Max Tokens).
+  - Groups/filters by provider, searches by model substring, and sorts dynamically.
+  - Includes a curated list of top models for primary providers by default.
 
 ---
 

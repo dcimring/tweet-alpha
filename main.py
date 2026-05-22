@@ -198,10 +198,16 @@ def analyze_tweet_sentiment(api_key, text):
     completion_tokens = usage.get("completion_tokens", 0)
     
     try:
-        call_cost = completion_cost(completion_response=response) or 0.0
+        from genai_prices import calc_price, Usage
+        genai_usage = Usage(input_tokens=prompt_tokens, output_tokens=completion_tokens)
+        price_calc = calc_price(usage=genai_usage, model_ref=model)
+        call_cost = float(price_calc.total_price)
     except Exception:
-        # Fallback to 0.0 cost if the model is brand new or unmapped in LiteLLM's local db
-        call_cost = 0.0
+        try:
+            call_cost = completion_cost(completion_response=response) or 0.0
+        except Exception:
+            # Fallback to 0.0 cost if the model is brand new or unmapped
+            call_cost = 0.0
     
     return json.loads(cleaned_content), prompt_tokens, completion_tokens, call_cost
 
