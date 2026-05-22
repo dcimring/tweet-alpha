@@ -156,7 +156,8 @@ def clean_grok_response(response_text):
     return text.strip()
 
 def analyze_tweet_sentiment(api_key, text):
-    """Send tweet text to xAI Grok API for ticker extraction and sentiment signal classification."""
+    """Send tweet text to xAI Grok API for ticker extraction and sentiment signal classification.
+    Returns (analysis_dict, prompt_tokens, completion_tokens)."""
     url = "https://api.x.ai/v1/chat/completions"
     headers = {
         "Authorization": f"Bearer {api_key}",
@@ -186,7 +187,11 @@ def analyze_tweet_sentiment(api_key, text):
     content = res_data["choices"][0]["message"]["content"]
     cleaned_content = clean_grok_response(content)
     
-    return json.loads(cleaned_content)
+    usage = res_data.get("usage", {})
+    prompt_tokens = usage.get("prompt_tokens", 0)
+    completion_tokens = usage.get("completion_tokens", 0)
+    
+    return json.loads(cleaned_content), prompt_tokens, completion_tokens
 
 def send_discord_alert(webhook_url, username, tweet_id, text, tickers, signal):
     """Send a rich embed message to a Discord webhook for high-importance (buy/sell) signals."""
@@ -250,6 +255,9 @@ def run_tracker(list_id, api_key, webhook_url):
     print(header)
     print("-" * len(header))
 
+    total_prompt_tokens = 0
+    total_completion_tokens = 0
+
     for item in unprocessed_tweets:
         tweet_id = item["id"]
         username = item["username"]
@@ -257,7 +265,10 @@ def run_tracker(list_id, api_key, webhook_url):
         
         try:
             # Perform sentiment analysis using Grok
-            analysis = analyze_tweet_sentiment(api_key, text)
+            analysis, p_tokens, c_tokens = analyze_tweet_sentiment(api_key, text)
+            total_prompt_tokens += p_tokens
+            total_completion_tokens += c_tokens
+            
             tickers = analysis.get("tickers", [])
             signal = analysis.get("signal", "neutral").lower()
             
@@ -276,6 +287,20 @@ def run_tracker(list_id, api_key, webhook_url):
         except Exception as e:
             print(f"Error processing tweet {tweet_id} by @{username}: {e}", file=sys.stderr)
             # Do NOT cache in db if analysis failed, so we can retry next time
+
+    if unprocessed_tweets:
+        # Calculate cost based on Grok 4.1 Fast Pricing: Input $0.20/1M, Output $0.50/1M
+        input_cost = (total_prompt_tokens * 0.20) / 1_000_000
+        output_cost = (total_completion_tokens * 0.50) / 1_000_000
+        total_cost = input_cost + output_cost
+        
+        print("\n" + "=" * 65)
+        print("                    API USAGE & COST SUMMARY")
+        print("=" * 65)
+        print(f"Input Tokens:  {total_prompt_tokens:<10,} Cost: ${input_cost:.6f}")
+        print(f"Output Tokens: {total_completion_tokens:<10,} Cost: ${output_cost:.6f}")
+        print(f"Total Cost:    ${total_cost:.6f}")
+        print("=" * 65)
 
 def main():
     parser = argparse.ArgumentParser(description="Tweet Alpha Tracker")
