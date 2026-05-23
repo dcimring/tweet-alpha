@@ -213,13 +213,29 @@ def analyze_tweet_sentiment(api_key, text):
         "Do not include markdown blocks or any text outside of the raw JSON."
     )
     
-    response = completion(
-        model=model,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": f"Analyze this tweet: \"{text}\""}
-        ]
-    )
+    max_retries = 5
+    delay = 2
+    response = None
+    for attempt in range(1, max_retries + 1):
+        try:
+            response = completion(
+                model=model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": f"Analyze this tweet: \"{text}\""}
+                ]
+            )
+            break
+        except Exception as e:
+            class_name = type(e).__name__
+            # Skip retrying for known non-transient error categories
+            if "BadRequest" in class_name or "Authentication" in class_name or "InvalidRequest" in class_name:
+                raise e
+            if attempt == max_retries:
+                raise e
+            print(f"Warning: API call failed with {class_name} ({e}). Retrying in {delay}s... (Attempt {attempt}/{max_retries})", file=sys.stderr)
+            time.sleep(delay)
+            delay *= 2
     
     content = response.choices[0].message.content
     cleaned_content = clean_grok_response(content)

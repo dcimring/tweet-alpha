@@ -57,6 +57,7 @@ graph TD
 - **Prompt Specification**: Commands the selected model to perform financial analysis, extract any stock/crypto symbols, and return a clean, unadorned JSON object containing keys:
   - `"tickers"`: List of upper-case strings (e.g. `["BTC", "SOL"]`)
   - `"signal"`: Sentiment classification string (`"buy"`, `"sell"`, `"bullish"`, `"bearish"`, or `"neutral"`)
+- **Error Retries & Resilience**: The completion call wraps LiteLLM requests in a robust retry handler with exponential backoff (up to 5 attempts, starting at 2 seconds). Known permanent exceptions (e.g. invalid API key or bad request) bypass retries, while transient network issues, 503 Service Unavailable, and 429 Rate Limit conditions are automatically retried to ensure reliability.
 - **JSON Sanitization**: Robustly strips markdown wrappers (such as ```json) before passing results to the JSON parser.
 
 ### D. Console Output
@@ -97,8 +98,8 @@ graph TD
    - Queries `tweets.db` for each tweet ID.
    - Keeps only tweets not already recorded in the database.
 4. **Analysis & Storage Phase**:
-   - For each unprocessed tweet, calls the Grok API.
-   - Parses the JSON response from Grok.
+   - For each unprocessed tweet, invokes the configured LLM through LiteLLM (with automatic retries for transient errors).
+   - Parses the JSON response.
    - Inserts the record into SQLite to ensure it is never processed again.
    - Prints a row in the console terminal table.
    - If the signal is `buy` or `sell`, dispatches the Discord embed immediately.
