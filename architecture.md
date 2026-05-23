@@ -29,6 +29,7 @@ graph TD
 - **Arguments**: Runs `bird list-timeline <LIST_ID> --json`.
 - **Session Auth**: Since system-level sandboxing can prevent automatic browser cookie reading, the wrapper forwards `TWITTER_AUTH_TOKEN` and `TWITTER_CT0` from the `.env` file via `AUTH_TOKEN` and `CT0` environment variables to the subprocess.
 - **Robust JSON Parsing**: Safely extracts the tweet ID, tweet text, and author handle across several legacy and modern GraphQL shapes that the bird output may render.
+- **Credential Failure Detection**: If the subprocess execution returns a non-zero exit code, the wrapper scans `stdout` and `stderr` for credential-related signatures (e.g. `HTTP 401`, `Could not authenticate`, `Missing credentials`, or missing tokens warnings). If detected, it raises a custom `BirdCredentialError` exception to trigger a warning dispatch.
 
 ### B. Database Layer (SQLite)
 - **File**: `tweets.db`
@@ -73,6 +74,7 @@ graph TD
   - **Green (`0x00FF00`)**: For `buy` signals.
   - **Red (`0xFF0000`)**: For `sell` signals.
 - Includes fields detailing the poster, tickers, tweet content, and a direct clickable URL back to the tweet on X.
+- **Credential Failure Alerts**: If the wrapper detects a credentials error, it dispatches an orange embed alert (`0xFF9900`) detailing the specific failure logs to the configured Discord Webhook to prompt credential renewal.
 
 ### F. Model Cost Viewer Utility (`model_costs.py`)
 - **Purpose**: A standalone command-line tool to inspect and compare token pricing (input and output costs) across diverse LLMs supported by LiteLLM.
@@ -94,6 +96,7 @@ graph TD
 2. **Fetch Phase**:
    - Executes the `bird` list-timeline command.
    - Decodes stdout from JSON bytes to an array of tweet objects.
+   - Scans output for credentials issues; if a credentials error is found, raises `BirdCredentialError`, sends a system alert embed to the Discord webhook, and gracefully aborts the current run.
 3. **Filter Phase**:
    - Queries `tweets.db` for each tweet ID.
    - Keeps only tweets not already recorded in the database.

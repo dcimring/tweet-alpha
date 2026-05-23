@@ -21,6 +21,10 @@ load_dotenv()
 
 DB_NAME = "tweets.db"
 
+class BirdCredentialError(Exception):
+    """Exception raised when bird CLI fails due to missing or invalid credentials."""
+    pass
+
 def init_db():
     """Initialize the SQLite database schema if it does not exist."""
     conn = sqlite3.connect(DB_NAME)
@@ -138,6 +142,18 @@ def fetch_tweets(list_id):
     if result.returncode != 0:
         print(f"Error executing bird CLI (code {result.returncode}):", file=sys.stderr)
         print(result.stderr, file=sys.stderr)
+        
+        # Check if the error is due to credentials
+        error_msg = (result.stderr or "") + "\n" + (result.stdout or "")
+        if ("Could not authenticate" in error_msg or 
+            "Missing required credentials" in error_msg or 
+            "HTTP 401" in error_msg or
+            "Missing auth_token" in error_msg or
+            "Missing ct0" in error_msg or
+            "auth_token: not found" in error_msg or
+            "ct0: not found" in error_msg):
+            raise BirdCredentialError(f"bird credential error detected: {result.stderr.strip() if result.stderr else 'missing or invalid credentials'}")
+            
         raise RuntimeError("bird CLI command failed.")
         
     return extract_json(result.stdout)
@@ -282,12 +298,39 @@ def send_discord_alert(webhook_url, username, tweet_id, text, tickers, signal):
     except Exception as e:
         print(f"Error sending Discord alert: {e}", file=sys.stderr)
 
+def send_discord_credential_error_alert(webhook_url, error_message):
+    """Send an alert to Discord notifying that bird credentials have failed or expired."""
+    embed = {
+        "title": "❌ BIRD CREDENTIALS ERROR",
+        "description": "The `bird` CLI tool encountered a credentials error when trying to fetch the list timeline. Please refresh the Twitter credentials.",
+        "color": 0xFF9900, # Orange for warning/action required
+        "fields": [
+            {"name": "Error Details", "value": f"```\n{error_message[:1000]}\n```", "inline": False},
+            {"name": "Action Required", "value": "Check the `.env` file and update `TWITTER_AUTH_TOKEN` and `TWITTER_CT0` with fresh cookies.", "inline": False}
+        ],
+        "footer": {"text": "Tweet Alpha Tracker — System Alert"}
+    }
+    payload = {"embeds": [embed]}
+    try:
+        r = requests.post(webhook_url, json=payload, timeout=10)
+        r.raise_for_status()
+        print("Discord credential error alert sent successfully!")
+    except Exception as e:
+        print(f"Error sending Discord credential error alert: {e}", file=sys.stderr)
+
 def run_tracker(list_id, api_key, webhook_url):
     """Query, filter, analyze, cache, and dispatch new list tweets."""
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print(f"\n--- [{now_str}] Checking X List {list_id} ---")
     try:
         raw_tweets = fetch_tweets(list_id)
+    except BirdCredentialError as e:
+        print(f"Failed to fetch tweets due to credentials: {e}", file=sys.stderr)
+        if webhook_url:
+            send_discord_credential_error_alert(webhook_url, str(e))
+        else:
+            print("Warning: DISCORD_WEBHOOK_URL is not configured, skipping Discord alert.", file=sys.stderr)
+        return
     except Exception as e:
         print(f"Failed to fetch tweets: {e}", file=sys.stderr)
         return
