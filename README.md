@@ -6,11 +6,12 @@ An automated financial screening pipeline that monitors X (Twitter) lists, extra
 
 ## 🌟 Key Features
 
-- **Real-Time Live Dashboard**: A bespoke, cyber-punk styled web terminal built on React, TypeScript, and Vanilla CSS with glassmorphism backdrop blurs and glowing badge animations.
+- **Real-Time Live Dashboard**: A bespoke, premium **Brutalist styled web terminal** built on React, TypeScript, and Vanilla CSS featuring thick solid borders, 4px flat offset shadows, heavy-weight typography, and a dynamic real-time scrolling ticker tape.
+- **Secured Database Mutations**: All Convex mutations (`saveProcessedTweet`, `saveRunRecord`, etc.) are protected using backend **API Secret Key Authorization**, preventing unauthorized write/insert attempts while keeping client-side read queries fast and public.
 - **WebSocket Data Sync**: Powered by Convex's reactive backend, the web dashboard updates instantly when new tweets are processed by the Python runner, with no page reloads.
-- **Dynamic Chart Analytics**: Integrated interactive Recharts reporting sentiment proportion mix (Pie/Donut charts) and execution cost tracking over time (Line charts).
-- **Interactive Ticker Cloud**: Dynamically compiles the most mentioned stock/crypto tickers and filters the live streaming feed on click.
-- **Intelligent Sentiment Analysis**: Uses LiteLLM to dynamically query models (e.g. `grok-4-1-fast-reasoning`, `gemini-2.5-flash-lite`) to classify tweets (`buy`, `sell`, `bullish`, `bearish`, `neutral`) and return structured JSON.
+- **Dynamic Chart Analytics**: Custom Recharts styled to look like hand-drawn graph paper plots (Pie/Donut charts outlined in black and Line charts plotted with heavy red strokes and yellow outlined dots).
+- **Interactive Ticker Cloud**: Dynamically compiles the most mentioned stock/crypto tickers into solid-bordered widgets and filters the live streaming feed on click.
+- **Intelligent Sentiment Analysis**: Uses LiteLLM to dynamically query models (e.g. `grok-4-1-fast-non-reasoning`, `gemini-2.5-flash-lite`) to classify tweets (`buy`, `sell`, `bullish`, `bearish`, `neutral`) and return structured JSON.
 - **High-Priority Discord Alerts**: Instantly dispatches rich, color-coded embed alerts (Emerald Green for `buy`, Ruby Red for `sell`) to your Discord channel.
 - **Credential Resilience**: Scans CLI scraper logs for credential issues and fires active warning embeds directly to your Discord webhook to prompt token renewals.
 
@@ -65,6 +66,9 @@ DISCORD_WEBHOOK_URL=your_discord_webhook_url_here
 CONVEX_URL=https://your-project.convex.cloud
 VITE_CONVEX_URL=https://your-project.convex.cloud
 
+# Backend Secret Key for Convex mutation protection (must match BACKEND_SECRET_KEY set in Convex Cloud)
+BACKEND_SECRET_KEY=your_backend_secret_key_here
+
 # Optional: Add these if bird CLI requires session cookie overrides
 TWITTER_AUTH_TOKEN=your_auth_token_here
 TWITTER_CT0=your_ct0_here
@@ -74,22 +78,28 @@ TWITTER_CT0=your_ct0_here
 
 ## 🚀 How to Run the Terminal
 
-To experience the real-time loop, run the following three processes together:
+To experience the real-time loop, configure your deployment and run the following three processes together:
 
-### A. Run the Convex Backend compiler
+### A. Configure Backend Secret Key on Convex
+Ensure that your Convex Cloud deployment has the matching secret key set up to protect mutations:
+```bash
+npx convex env set BACKEND_SECRET_KEY your_backend_secret_key_here
+```
+
+### B. Run the Convex Backend compiler
 Launches the Convex local code compiler and deploys changes to your cloud database automatically:
 ```bash
 npx convex dev
 ```
 
-### B. Run the Live Web Dashboard
+### C. Run the Live Web Dashboard
 Launches the Vite development server in the background:
 ```bash
 npm run dev &
 ```
 The terminal dashboard will be accessible at: 👉 **[http://localhost:5174](http://localhost:5174)**
 
-### C. Run the Python Scraper Runner
+### D. Run the Python Scraper Runner
 Runs the main automated fetch and extraction pipeline:
 ```bash
 # Run a single fetch check and exit
