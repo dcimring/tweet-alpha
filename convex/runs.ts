@@ -1,9 +1,12 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 
+declare const process: any;
+
 // Log a single tracker execution run
 export const saveRunRecord = mutation({
   args: {
+    secretKey: v.string(),
     tweetsProcessed: v.number(),
     modelUsed: v.string(),
     totalInputTokens: v.number(),
@@ -12,6 +15,9 @@ export const saveRunRecord = mutation({
     timestamp: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    if (args.secretKey !== process.env.BACKEND_SECRET_KEY) {
+      throw new Error("Unauthorized: Invalid backend secret key.");
+    }
     await ctx.db.insert("tracker_runs", {
       tweetsProcessed: args.tweetsProcessed,
       modelUsed: args.modelUsed,
@@ -26,6 +32,7 @@ export const saveRunRecord = mutation({
 // Bulk insert run logs (primarily used for data migration)
 export const bulkInsertRuns = mutation({
   args: {
+    secretKey: v.string(),
     runs: v.array(
       v.object({
         tweetsProcessed: v.number(),
@@ -38,6 +45,9 @@ export const bulkInsertRuns = mutation({
     ),
   },
   handler: async (ctx, args) => {
+    if (args.secretKey !== process.env.BACKEND_SECRET_KEY) {
+      throw new Error("Unauthorized: Invalid backend secret key.");
+    }
     for (const run of args.runs) {
       await ctx.db.insert("tracker_runs", {
         ...run,

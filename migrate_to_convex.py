@@ -52,7 +52,8 @@ def migrate():
         
         # Batch upload to avoid hitting rate limits or call overhead
         try:
-            client.mutation("tweets:bulkInsertTweets", {"tweets": tweets_data})
+            secret_key = os.getenv("BACKEND_SECRET_KEY", "")
+            client.mutation("tweets:bulkInsertTweets", {"secretKey": secret_key, "tweets": tweets_data})
             print(f"Successfully migrated {len(tweets_rows)} processed_tweets to Convex!")
         except Exception as e:
             print(f"Error migrating processed_tweets: {e}")
@@ -83,7 +84,8 @@ def migrate():
             })
         
         try:
-            client.mutation("runs:bulkInsertRuns", {"runs": runs_data})
+            secret_key = os.getenv("BACKEND_SECRET_KEY", "")
+            client.mutation("runs:bulkInsertRuns", {"secretKey": secret_key, "runs": runs_data})
             print(f"Successfully migrated {len(runs_rows)} tracker_runs to Convex!")
         except Exception as e:
             print(f"Error migrating tracker_runs: {e}")

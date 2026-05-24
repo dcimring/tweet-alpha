@@ -36,10 +36,12 @@ def init_db():
 
 def save_run_record(tweets_processed, model_used, total_input_tokens, total_output_tokens, total_cost):
     """Record a run execution's metadata in the Convex database."""
+    secret_key = os.getenv("BACKEND_SECRET_KEY", "")
     try:
         convex_client.mutation(
             "runs:saveRunRecord",
             {
+                "secretKey": secret_key,
                 "tweetsProcessed": tweets_processed,
                 "modelUsed": model_used,
                 "totalInputTokens": total_input_tokens,
@@ -61,10 +63,12 @@ def is_tweet_processed(tweet_id):
 def save_processed_tweet(tweet_id, username, text, tickers, signal):
     """Record a processed tweet and its extraction results in Convex."""
     tickers_str = ", ".join(tickers) if tickers else ""
+    secret_key = os.getenv("BACKEND_SECRET_KEY", "")
     try:
         convex_client.mutation(
             "tweets:saveProcessedTweet",
             {
+                "secretKey": secret_key,
                 "tweetId": str(tweet_id),
                 "username": username,
                 "text": text,

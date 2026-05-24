@@ -1,6 +1,8 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 
+declare const process: any;
+
 // Check if a tweet has already been processed by querying the by_tweetId index
 export const isTweetProcessed = query({
   args: { tweetId: v.string() },
@@ -16,6 +18,7 @@ export const isTweetProcessed = query({
 // Save a processed tweet into the database, avoiding duplicates
 export const saveProcessedTweet = mutation({
   args: {
+    secretKey: v.string(),
     tweetId: v.string(),
     username: v.string(),
     text: v.string(),
@@ -24,6 +27,9 @@ export const saveProcessedTweet = mutation({
     processedAt: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    if (args.secretKey !== process.env.BACKEND_SECRET_KEY) {
+      throw new Error("Unauthorized: Invalid backend secret key.");
+    }
     const existing = await ctx.db
       .query("processed_tweets")
       .withIndex("by_tweetId", (q) => q.eq("tweetId", args.tweetId))
@@ -45,6 +51,7 @@ export const saveProcessedTweet = mutation({
 // Bulk insert tweets (primarily used for data migration)
 export const bulkInsertTweets = mutation({
   args: {
+    secretKey: v.string(),
     tweets: v.array(
       v.object({
         tweetId: v.string(),
@@ -57,6 +64,9 @@ export const bulkInsertTweets = mutation({
     ),
   },
   handler: async (ctx, args) => {
+    if (args.secretKey !== process.env.BACKEND_SECRET_KEY) {
+      throw new Error("Unauthorized: Invalid backend secret key.");
+    }
     for (const tweet of args.tweets) {
       const existing = await ctx.db
         .query("processed_tweets")
