@@ -92,6 +92,14 @@ export default function App() {
       .slice(0, 12);
   }, [tweetStats]);
 
+  // Render a moving ticker tape of trending items
+  const marqueeItems = useMemo(() => {
+    if (!sortedTickers || sortedTickers.length === 0) {
+      return ["BINANCE 22", "OKX 38 ↑", "ETHENA 71 ↑", "CURVE 31 ↑", "COINBASE 14 ↓", "AAVE 17", "LIDO 12 ↓"];
+    }
+    return sortedTickers.map((t) => `${t.name} ${t.count}`);
+  }, [sortedTickers]);
+
   // Chart Data: Sentiment Breakdown
   const sentimentChartData = useMemo(() => {
     if (!tweetStats?.signalCounts) return [];
@@ -116,11 +124,11 @@ export default function App() {
 
   // Colors for Sentiment Pie Chart
   const SENTIMENT_COLORS: Record<string, string> = {
-    BUY: "#10b981",      // Emerald
-    SELL: "#ef4444",     // Ruby Red
-    BULLISH: "#34d399",  // Light Emerald
-    BEARISH: "#f87171",  // Light Ruby
-    NEUTRAL: "#94a3b8",  // Slate
+    BUY: "#d83a1f",      // Brutalist Red
+    SELL: "#d83a1f",     // Brutalist Red
+    BULLISH: "#ffd400",  // Brutalist Yellow
+    BEARISH: "#0a0a0a",  // Brutalist Ink
+    NEUTRAL: "#ffffff",  // Stark White
   };
 
   return (
@@ -129,7 +137,7 @@ export default function App() {
       <header className="navbar glass-panel">
         <div className="brand">
           <div className="brand-icon">
-            <TrendingUp size={20} color="#fff" />
+            <TrendingUp size={16} color="var(--paper)" />
           </div>
           <div className="brand-text">Tweet Alpha Terminal</div>
         </div>
@@ -139,12 +147,24 @@ export default function App() {
         </div>
       </header>
 
+      {/* Marquee Ticker Tape */}
+      <div className="strip">
+        <div className="track">
+          {[...marqueeItems, ...marqueeItems, ...marqueeItems, ...marqueeItems].map((item, idx) => (
+            <span className="item" key={idx}>
+              <span className="dot" />
+              {item}
+            </span>
+          ))}
+        </div>
+      </div>
+
       {/* KPI Metrics Row */}
       <section className="metrics-grid">
         <div className="metric-card glass-panel">
           <div className="metric-header">
             <span>Tweets Screened</span>
-            <Activity size={16} className="empty-icon" color="#818cf8" />
+            <Activity size={16} className="empty-icon" color="var(--ink)" />
           </div>
           <div className="metric-value">
             {isLoading ? "..." : runStats?.totalTweetsProcessed}
@@ -157,7 +177,7 @@ export default function App() {
         <div className="metric-card glass-panel success">
           <div className="metric-header">
             <span>Alpha Yield</span>
-            <TrendingUp size={16} className="empty-icon" color="#10b981" />
+            <TrendingUp size={16} className="empty-icon" color="var(--red)" />
           </div>
           <div className="metric-value">
             {isLoading
@@ -175,7 +195,7 @@ export default function App() {
         <div className="metric-card glass-panel warning">
           <div className="metric-header">
             <span>Total API Cost</span>
-            <DollarSign size={16} className="empty-icon" color="#f59e0b" />
+            <DollarSign size={16} className="empty-icon" color="var(--ink)" />
           </div>
           <div className="metric-value">
             {isLoading ? "..." : `$${runStats?.totalCost.toFixed(6)}`}
@@ -188,7 +208,7 @@ export default function App() {
         <div className="metric-card glass-panel">
           <div className="metric-header">
             <span>System Runs</span>
-            <Cpu size={16} className="empty-icon" color="#94a3b8" />
+            <Cpu size={16} className="empty-icon" color="var(--ink)" />
           </div>
           <div className="metric-value">
             {isLoading ? "..." : runStats?.runCountSample}
@@ -213,7 +233,7 @@ export default function App() {
           {/* Filtering Controls */}
           <div className="feed-controls">
             <div style={{ position: "relative", flex: 1, display: "flex", alignItems: "center" }}>
-              <Search size={16} color="#94a3b8" style={{ position: "absolute", left: "12px" }} />
+              <Search size={16} color="var(--ink)" style={{ position: "absolute", left: "12px" }} />
               <input
                 type="text"
                 placeholder="Search username, tickers, text..."
@@ -412,31 +432,33 @@ export default function App() {
                         <Cell
                           key={`cell-${index}`}
                           fill={SENTIMENT_COLORS[entry.name] || "#64748b"}
+                          stroke="#0a0a0a"
+                          strokeWidth={2}
                         />
                       ))}
                     </Pie>
                     <Tooltip
-                      contentStyle={{ background: "#111827", borderColor: "rgba(255,255,255,0.08)", borderRadius: "8px", color: "#fff" }}
+                      contentStyle={{ background: "#ffffff", border: "2px solid #0a0a0a", borderRadius: "0px", color: "#0a0a0a", fontFamily: "var(--font-mono)", fontSize: "11px", fontWeight: "700" }}
                     />
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={costChartData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
-                    <XAxis dataKey="time" stroke="#64748b" fontSize={9} />
-                    <YAxis stroke="#64748b" fontSize={9} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#0a0a0a" strokeOpacity={0.1} />
+                    <XAxis dataKey="time" stroke="#0a0a0a" fontSize={9} fontFamily="var(--font-mono)" fontWeight={700} />
+                    <YAxis stroke="#0a0a0a" fontSize={9} fontFamily="var(--font-mono)" fontWeight={700} />
                     <Tooltip
                       formatter={(val: any) => [`$${(val / 1000).toFixed(6)}`, "Cost"]}
-                      contentStyle={{ background: "#111827", borderColor: "rgba(255,255,255,0.08)", borderRadius: "8px", color: "#fff" }}
+                      contentStyle={{ background: "#ffffff", border: "2px solid #0a0a0a", borderRadius: "0px", color: "#0a0a0a", fontFamily: "var(--font-mono)", fontSize: "11px", fontWeight: "700" }}
                     />
                     <Line
                       type="monotone"
                       dataKey="cost"
-                      stroke="#818cf8"
-                      strokeWidth={2}
-                      dot={{ r: 3, stroke: "#818cf8", strokeWidth: 1 }}
-                      activeDot={{ r: 5 }}
+                      stroke="#d83a1f"
+                      strokeWidth={3}
+                      dot={{ r: 4, stroke: "#0a0a0a", strokeWidth: 2, fill: "#ffd400" }}
+                      activeDot={{ r: 6, fill: "#d83a1f", stroke: "#0a0a0a", strokeWidth: 2 }}
                     />
                   </LineChart>
                 </ResponsiveContainer>
