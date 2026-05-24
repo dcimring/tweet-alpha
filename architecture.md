@@ -112,3 +112,30 @@ graph TD
 6. **Scheduler**:
    - If executed in daemon mode (default), sleeps for 3600 seconds (1 hour) before restarting the flow.
    - If executed with `--once`, shuts down cleanly.
+
+---
+
+## 4. Frontend Live Dashboard
+
+The dashboard provides a real-time command terminal to monitor, search, and analyze processed tweets, runner logs, and LLM expenses.
+
+### A. Tech Stack
+- **Framework**: React 19 + TypeScript + Vite.
+- **Real-Time Data Layer**: Convex React Client using high-performance WebSocket subscriptions (`useQuery`).
+- **Styling**: Modern custom Vanilla CSS with custom HSL design tokens, glassmorphism, responsive grid boundaries, and micro-animations.
+- **Charts**: Recharts library configured with a bespoke theme matching the dark indigo terminal colors.
+
+### B. Core UI Components (`src/App.tsx`)
+1. **Live status navigation bar**: Features a green pulsing dot connected to active server synchronization events.
+2. **KPI Metrics Cards**: Real-time counter metrics measuring total tweets screened, alpha signals extracted (bullish or buy), accumulated token execution cost (fixed at 6 decimal places), and scheduler run frequency.
+3. **Interactive Alpha Stream Feed**:
+   - Scrolling list of processed tweets styled with responsive layouts.
+   - Colored visual badges marking sentiment classification (`BUY`, `SELL`, `BULLISH`, `BEARISH`, `NEUTRAL`). High-severity badges like `BUY` / `SELL` pulse continuously.
+   - Fully searchable by text, ticker, or user handle, and filterable by signal severity level.
+   - Clickable direct anchors to view the tweet natively on X.
+4. **Trending Tickers Watchboard**: A dynamically computed tag-cloud representing most mentioned stock or crypto tickers sorted by frequency. Clicking on any ticker instantly filters the live Alpha Feed to show only tweets containing that ticker.
+5. **Interactive Analytics Panel**:
+   - **Sentiment Mix**: A custom Recharts inner-donut PieChart rendering the exact proportion of each sentiment signal.
+   - **Execution Costs Trend**: A Recharts LineChart mapping the execution expenses and efficiency across recent scraping runs in chronological sequence.
+6. **Background Runs Log**: Real-time monitor of scraper cron jobs tracking execution timestamps, new tweets processed, exact model used, and run costs.
+

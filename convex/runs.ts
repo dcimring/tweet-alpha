@@ -1,4 +1,4 @@
-import { mutation } from "./_generated/server";
+import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 
 // Log a single tracker execution run
@@ -46,3 +46,52 @@ export const bulkInsertRuns = mutation({
     }
   },
 });
+
+// Query to get recent tracker runs
+export const getRecentRuns = query({
+  args: {
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const limit = args.limit ?? 50;
+    return await ctx.db
+      .query("tracker_runs")
+      .order("desc")
+      .take(limit);
+  },
+});
+
+// Query to get aggregated run stats
+export const getRunStats = query({
+  args: {},
+  handler: async (ctx) => {
+    const recent = await ctx.db
+      .query("tracker_runs")
+      .order("desc")
+      .take(100);
+
+    let totalCost = 0;
+    let totalTweetsProcessed = 0;
+    let totalInputTokens = 0;
+    let totalOutputTokens = 0;
+    const modelCounts: Record<string, number> = {};
+
+    for (const r of recent) {
+      totalCost += r.totalCost;
+      totalTweetsProcessed += r.tweetsProcessed;
+      totalInputTokens += r.totalInputTokens;
+      totalOutputTokens += r.totalOutputTokens;
+      modelCounts[r.modelUsed] = (modelCounts[r.modelUsed] || 0) + 1;
+    }
+
+    return {
+      runCountSample: recent.length,
+      totalCost,
+      totalTweetsProcessed,
+      totalInputTokens,
+      totalOutputTokens,
+      modelCounts,
+    };
+  },
+});
+

@@ -21,6 +21,8 @@ Thumbs.db
 
 .env.local
 
-# Node dependencies
+# Node dependencies and build output
 node_modules/
+dist/
+.convex/
 

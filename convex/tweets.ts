@@ -71,3 +71,50 @@ export const bulkInsertTweets = mutation({
     }
   },
 });
+
+// Query to get recent processed tweets
+export const getRecentTweets = query({
+  args: {
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const limit = args.limit ?? 50;
+    return await ctx.db
+      .query("processed_tweets")
+      .order("desc")
+      .take(limit);
+  },
+});
+
+// Query to get stats about processed tweets
+export const getTweetStats = query({
+  args: {},
+  handler: async (ctx) => {
+    const recent = await ctx.db
+      .query("processed_tweets")
+      .order("desc")
+      .take(1000);
+
+    const signalCounts: Record<string, number> = {};
+    const tickerCounts: Record<string, number> = {};
+
+    for (const t of recent) {
+      signalCounts[t.signal] = (signalCounts[t.signal] || 0) + 1;
+      if (t.tickers) {
+        const list = t.tickers.split(",").map((s) => s.trim().toUpperCase());
+        for (const ticker of list) {
+          if (ticker) {
+            tickerCounts[ticker] = (tickerCounts[ticker] || 0) + 1;
+          }
+        }
+      }
+    }
+
+    return {
+      totalProcessedSample: recent.length,
+      signalCounts,
+      tickerCounts,
+    };
+  },
+});
+
