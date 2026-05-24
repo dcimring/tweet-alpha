@@ -18,3 +18,9 @@ __pycache__/
 # Operating system files
 .DS_Store
 Thumbs.db
+
+.env.local
+
+# Node dependencies
+node_modules/
+

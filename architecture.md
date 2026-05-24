@@ -12,10 +12,10 @@ The Tweet Alpha Tracker is a lightweight automated tool that reads tweets from a
 graph TD
     A[Timer / Loop / CLI Trigger] --> B[Fetch List Timeline via bird CLI]
     B --> C[Parse Tweets JSON]
-    C --> D[Filter Unprocessed Tweets via SQLite]
+    C --> D[Filter Unprocessed Tweets via Convex]
     D -->|New Tweets Only| E[Analyze Sentiment via LiteLLM]
     E --> F[Extract Ticker & Signal]
-    F --> G[Save Tweet & Results to SQLite]
+    F --> G[Save Tweet & Results to Convex]
     F --> H[Show Consolidated Console Table]
     F -->|Signal is BUY/SELL| I[Dispatch Rich Discord Webhook Embed]
 ```
@@ -31,26 +31,27 @@ graph TD
 - **Robust JSON Parsing**: Safely extracts the tweet ID, tweet text, and author handle across several legacy and modern GraphQL shapes that the bird output may render.
 - **Credential Failure Detection**: If the subprocess execution returns a non-zero exit code, the wrapper scans `stdout` and `stderr` for credential-related signatures (e.g. `HTTP 401`, `Could not authenticate`, `Missing credentials`, or missing tokens warnings). If detected, it raises a custom `BirdCredentialError` exception to trigger a warning dispatch.
 
-### B. Database Layer (SQLite)
-- **File**: `tweets.db`
+### B. Database Layer (Convex)
+- **Service**: Hosted Convex Backend (real-time BaaS platform)
+- **Folder**: `convex/`
 - **Tables**:
   - `processed_tweets`: Caches tweets and extraction results.
     - **Schema**:
-      - `tweet_id` (TEXT, PRIMARY KEY): Used to uniquely identify the tweet and prevent duplicate processing.
-      - `username` (TEXT): The Twitter handle of the poster.
-      - `text` (TEXT): The body of the tweet.
-      - `tickers` (TEXT): Comma-separated list of identified tickers.
-      - `signal` (TEXT): Classification of the tweet (one of `buy`, `sell`, `bullish`, `bearish`, `neutral`).
-      - `processed_at` (TIMESTAMP): Automatically records the processing date and time.
+      - `tweetId` (string): Used to uniquely identify the tweet and prevent duplicate processing.
+      - `username` (string): The Twitter handle of the poster.
+      - `text` (string): The body of the tweet.
+      - `tickers` (string): Comma-separated list of identified tickers.
+      - `signal` (string): Classification of the tweet (one of `buy`, `sell`, `bullish`, `bearish`, `neutral`).
+      - `processedAt` (string, optional): ISO timestamp of when the tweet was processed.
+    - **Index**: `by_tweetId` on `tweetId` (provides O(1) duplicate checks).
   - `tracker_runs`: Records execution metrics for each tracker run.
     - **Schema**:
-      - `id` (INTEGER, PRIMARY KEY AUTOINCREMENT): Unique row identifier.
-      - `timestamp` (TIMESTAMP): Automatically records when the run occurred.
-      - `tweets_processed` (INTEGER): Number of new tweets successfully processed during the run.
-      - `model_used` (TEXT): The model name used for sentiment classification (e.g. `xai/grok-4-1-fast-non-reasoning`).
-      - `total_input_tokens` (INTEGER): Total prompt tokens consumed during the run.
-      - `total_output_tokens` (INTEGER): Total completion tokens consumed during the run.
-      - `total_cost` (REAL): Total execution cost in USD.
+      - `tweetsProcessed` (number): Number of new tweets successfully processed during the run.
+      - `modelUsed` (string): The model name used for sentiment classification (e.g. `xai/grok-4-1-fast-non-reasoning`).
+      - `totalInputTokens` (number): Total prompt tokens consumed during the run.
+      - `totalOutputTokens` (number): Total completion tokens consumed during the run.
+      - `totalCost` (number): Total execution cost in USD.
+      - `timestamp` (string, optional): ISO timestamp of the run.
 
 ### C. Sentiment Analysis & Extraction (LiteLLM Wrapper)
 - **Multi-Model Integration**: Invokes a dynamic model via LiteLLM specified by `ACTIVE_MODEL` in the environment configuration (e.g., `xai/grok-4-1-fast-non-reasoning`, `gemini/gemini-2.5-flash`).
@@ -91,21 +92,23 @@ graph TD
 ## 3. Data Flow Execution Sequence
 
 1. **Initialization**:
-   - Loads `.env` file configurations.
-   - Initialises the local SQLite database.
+   - Loads `.env` and `.env.local` configurations to retrieve `CONVEX_URL`.
+   - Establishes a lightweight connection to the Convex backend using `ConvexClient`.
 2. **Fetch Phase**:
    - Executes the `bird` list-timeline command.
    - Decodes stdout from JSON bytes to an array of tweet objects.
    - Scans output for credentials issues; if a credentials error is found, raises `BirdCredentialError`, sends a system alert embed to the Discord webhook, and gracefully aborts the current run.
 3. **Filter Phase**:
-   - Queries `tweets.db` for each tweet ID.
-   - Keeps only tweets not already recorded in the database.
+   - Queries the Convex backend database for each tweet ID using the `tweets:isTweetProcessed` query.
+   - Keeps only tweets not already recorded in the `processed_tweets` table.
 4. **Analysis & Storage Phase**:
    - For each unprocessed tweet, invokes the configured LLM through LiteLLM (with automatic retries for transient errors).
    - Parses the JSON response.
-   - Inserts the record into SQLite to ensure it is never processed again.
+   - Mutates Convex using the `tweets:saveProcessedTweet` mutation to insert the record, ensuring it is never processed again.
    - Prints a row in the console terminal table.
    - If the signal is `buy` or `sell`, dispatches the Discord embed immediately.
-5. **Scheduler**:
+5. **Post-Run Log**:
+   - Calls the `runs:saveRunRecord` mutation to store the overall tracker metrics and execution costs in the Convex backend database.
+6. **Scheduler**:
    - If executed in daemon mode (default), sleeps for 3600 seconds (1 hour) before restarting the flow.
    - If executed with `--once`, shuts down cleanly.

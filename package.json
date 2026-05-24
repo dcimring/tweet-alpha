@@ -1,0 +1,11 @@
+{
+  "name": "tweet-alpha",
+  "version": "1.0.0",
+  "description": "Tweet Alpha Tracker with Convex backend",
+  "scripts": {
+    "convex": "convex"
+  },
+  "devDependencies": {
+    "convex": "^1.11.0"
+  }
+}

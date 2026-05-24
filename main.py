@@ -3,7 +3,7 @@ import os
 import sys
 import json
 import time
-import sqlite3
+from convex import ConvexClient
 import subprocess
 import argparse
 import requests
@@ -19,75 +19,62 @@ from litellm import completion, completion_cost
 # Load environment variables
 load_dotenv()
 
-DB_NAME = "tweets.db"
+CONVEX_URL = os.getenv("CONVEX_URL")
+if not CONVEX_URL:
+    print("Error: CONVEX_URL is not defined in the environment variables.", file=sys.stderr)
+    sys.exit(1)
+
+convex_client = ConvexClient(CONVEX_URL)
 
 class BirdCredentialError(Exception):
     """Exception raised when bird CLI fails due to missing or invalid credentials."""
     pass
 
 def init_db():
-    """Initialize the SQLite database schema if it does not exist."""
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS processed_tweets (
-            tweet_id TEXT PRIMARY KEY,
-            username TEXT,
-            text TEXT,
-            tickers TEXT,
-            signal TEXT,
-            processed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS tracker_runs (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            tweets_processed INTEGER,
-            model_used TEXT,
-            total_input_tokens INTEGER,
-            total_output_tokens INTEGER,
-            total_cost REAL
-        )
-    """)
-    conn.commit()
-    conn.close()
+    """No-op for Convex database since schema is declared in TypeScript."""
+    pass
 
 def save_run_record(tweets_processed, model_used, total_input_tokens, total_output_tokens, total_cost):
-    """Record a run execution's metadata in the local SQLite database."""
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-    cursor.execute(
-        """
-        INSERT INTO tracker_runs (tweets_processed, model_used, total_input_tokens, total_output_tokens, total_cost)
-        VALUES (?, ?, ?, ?, ?)
-        """,
-        (tweets_processed, model_used, total_input_tokens, total_output_tokens, total_cost)
-    )
-    conn.commit()
-    conn.close()
+    """Record a run execution's metadata in the Convex database."""
+    try:
+        convex_client.mutation(
+            "runs:saveRunRecord",
+            {
+                "tweetsProcessed": tweets_processed,
+                "modelUsed": model_used,
+                "totalInputTokens": total_input_tokens,
+                "totalOutputTokens": total_output_tokens,
+                "totalCost": total_cost,
+            }
+        )
+    except Exception as e:
+        print(f"Error recording run in Convex: {e}", file=sys.stderr)
 
 def is_tweet_processed(tweet_id):
-    """Check if a tweet ID has already been processed."""
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-    cursor.execute("SELECT 1 FROM processed_tweets WHERE tweet_id = ?", (tweet_id,))
-    row = cursor.fetchone()
-    conn.close()
-    return row is not None
+    """Check if a tweet ID has already been processed in Convex."""
+    try:
+        return convex_client.query("tweets:isTweetProcessed", {"tweetId": str(tweet_id)})
+    except Exception as e:
+        print(f"Error querying Convex: {e}", file=sys.stderr)
+        raise e
 
 def save_processed_tweet(tweet_id, username, text, tickers, signal):
-    """Record a processed tweet and its extraction results in the local cache."""
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-    # Serialize tickers list to comma-separated string
+    """Record a processed tweet and its extraction results in Convex."""
     tickers_str = ", ".join(tickers) if tickers else ""
-    cursor.execute(
-        "INSERT INTO processed_tweets (tweet_id, username, text, tickers, signal) VALUES (?, ?, ?, ?, ?)",
-        (tweet_id, username, text, tickers_str, signal)
-    )
-    conn.commit()
-    conn.close()
+    try:
+        convex_client.mutation(
+            "tweets:saveProcessedTweet",
+            {
+                "tweetId": str(tweet_id),
+                "username": username,
+                "text": text,
+                "tickers": tickers_str,
+                "signal": signal,
+            }
+        )
+    except Exception as e:
+        print(f"Error saving processed tweet in Convex: {e}", file=sys.stderr)
+        raise e
 
 def extract_json(stdout_str):
     """Robustly extracts JSON from standard output, ignoring any leading/trailing warnings."""
