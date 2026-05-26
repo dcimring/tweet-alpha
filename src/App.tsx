@@ -88,8 +88,7 @@ export default function App() {
     if (!tweetStats?.tickerCounts) return [];
     return Object.entries(tweetStats.tickerCounts)
       .map(([name, count]) => ({ name, count: Number(count) }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 12);
+      .sort((a, b) => b.count - a.count);
   }, [tweetStats]);
 
   // Render a moving ticker tape of trending items
@@ -97,7 +96,7 @@ export default function App() {
     if (!sortedTickers || sortedTickers.length === 0) {
       return ["BINANCE 22", "OKX 38 ↑", "ETHENA 71 ↑", "CURVE 31 ↑", "COINBASE 14 ↓", "AAVE 17", "LIDO 12 ↓"];
     }
-    return sortedTickers.map((t) => `${t.name} ${t.count}`);
+    return sortedTickers.slice(0, 10).map((t) => `${t.name} ${t.count}`);
   }, [sortedTickers]);
 
   // Chart Data: Sentiment Breakdown
