@@ -423,7 +423,7 @@ def run_tracker(list_id, api_key, webhook_url):
             tickers_display = ", ".join(tickers) if tickers else "None"
             print(f"@{username:<17} | {tickers_display:<12} | {signal:<8} | {preview}")
             
-            # Cache results in local SQLite database
+            # Save results in Convex database
             save_processed_tweet(tweet_id, username, text, tickers, signal)
             successful_processed_count += 1
             

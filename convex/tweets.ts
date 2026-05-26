@@ -120,15 +120,14 @@ export const getRecentTweets = query({
 export const getTweetStats = query({
   args: {},
   handler: async (ctx) => {
-    const recent = await ctx.db
+    const allTweets = await ctx.db
       .query("processed_tweets")
-      .order("desc")
-      .take(1000);
+      .collect();
 
     const signalCounts: Record<string, number> = {};
     const tickerCounts: Record<string, number> = {};
 
-    for (const t of recent) {
+    for (const t of allTweets) {
       signalCounts[t.signal] = (signalCounts[t.signal] || 0) + 1;
       if (t.tickers) {
         const list = t.tickers.split(",").map((s) => s.trim().toUpperCase());
@@ -141,7 +140,7 @@ export const getTweetStats = query({
     }
 
     return {
-      totalProcessedSample: recent.length,
+      totalTweets: allTweets.length,
       signalCounts,
       tickerCounts,
     };

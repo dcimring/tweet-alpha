@@ -75,10 +75,9 @@ export const getRecentRuns = query({
 export const getRunStats = query({
   args: {},
   handler: async (ctx) => {
-    const recent = await ctx.db
+    const allRuns = await ctx.db
       .query("tracker_runs")
-      .order("desc")
-      .take(100);
+      .collect();
 
     let totalCost = 0;
     let totalTweetsProcessed = 0;
@@ -86,7 +85,7 @@ export const getRunStats = query({
     let totalOutputTokens = 0;
     const modelCounts: Record<string, number> = {};
 
-    for (const r of recent) {
+    for (const r of allRuns) {
       totalCost += r.totalCost;
       totalTweetsProcessed += r.tweetsProcessed;
       totalInputTokens += r.totalInputTokens;
@@ -95,7 +94,7 @@ export const getRunStats = query({
     }
 
     return {
-      runCountSample: recent.length,
+      runCountSample: allRuns.length,
       totalCost,
       totalTweetsProcessed,
       totalInputTokens,

@@ -166,7 +166,7 @@ export default function App() {
             <Activity size={16} className="empty-icon" color="var(--ink)" />
           </div>
           <div className="metric-value">
-            {isLoading ? "..." : runStats?.totalTweetsProcessed}
+            {isLoading ? "..." : tweetStats?.totalTweets}
           </div>
           <div className="metric-sub">
             <span>from background list updates</span>
