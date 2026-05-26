@@ -15,6 +15,26 @@ export const isTweetProcessed = query({
   },
 });
 
+// Check which of the given tweet IDs have already been processed
+export const checkProcessedTweets = query({
+  args: { tweetIds: v.array(v.string()) },
+  handler: async (ctx, args) => {
+    const processed: string[] = [];
+    await Promise.all(
+      args.tweetIds.map(async (tweetId) => {
+        const tweet = await ctx.db
+          .query("processed_tweets")
+          .withIndex("by_tweetId", (q) => q.eq("tweetId", tweetId))
+          .unique();
+        if (tweet !== null) {
+          processed.push(tweetId);
+        }
+      })
+    );
+    return processed;
+  },
+});
+
 // Save a processed tweet into the database, avoiding duplicates
 export const saveProcessedTweet = mutation({
   args: {

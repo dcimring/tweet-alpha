@@ -44,6 +44,7 @@ graph TD
       - `signal` (string): Classification of the tweet (one of `buy`, `sell`, `bullish`, `bearish`, `neutral`).
       - `processedAt` (string, optional): ISO timestamp of when the tweet was processed.
     - **Index**: `by_tweetId` on `tweetId` (provides O(1) duplicate checks).
+    - **Batch Query**: `tweets:checkProcessedTweets` is used to batch-query multiple tweet IDs concurrently on the backend, minimizing network round-trip overhead.
   - `tracker_runs`: Records execution metrics for each tracker run.
     - **Schema**:
       - `tweetsProcessed` (number): Number of new tweets successfully processed during the run.
@@ -99,7 +100,8 @@ graph TD
    - Decodes stdout from JSON and constructs a normalized list of tweet objects with usernames mapped from expansions.
    - Scans output for credentials issues; if a credentials error is found, raises `BirdCredentialError`, sends a system alert embed to the Discord webhook, and gracefully aborts the current run.
 3. **Filter Phase**:
-   - Queries the Convex backend database for each tweet ID using the `tweets:isTweetProcessed` query.
+   - Queries the Convex backend database in a single batch operation for all tweet IDs using the `tweets:checkProcessedTweets` query.
+   - Falls back to querying individual tweet IDs via `tweets:isTweetProcessed` in case of unexpected remote schema discrepancies or query errors.
    - Keeps only tweets not already recorded in the `processed_tweets` table.
 4. **Analysis & Storage Phase**:
    - For each unprocessed tweet, invokes the configured LLM through LiteLLM (with automatic retries for transient errors).

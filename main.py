@@ -60,6 +60,14 @@ def is_tweet_processed(tweet_id):
         print(f"Error querying Convex: {e}", file=sys.stderr)
         raise e
 
+def check_processed_tweets(tweet_ids):
+    """Check which tweet IDs in a list have already been processed in Convex in a single batch query."""
+    try:
+        return convex_client.query("tweets:checkProcessedTweets", {"tweetIds": [str(tid) for tid in tweet_ids]})
+    except Exception as e:
+        print(f"Error querying Convex checkProcessedTweets: {e}", file=sys.stderr)
+        raise e
+
 def save_processed_tweet(tweet_id, username, text, tickers, signal):
     """Record a processed tweet and its extraction results in Convex."""
     tickers_str = ", ".join(tickers) if tickers else ""
@@ -335,12 +343,27 @@ def run_tracker(list_id, api_key, webhook_url):
         return
 
     unprocessed_tweets = []
+    # Batch check which tweets are already processed to avoid expensive sequential queries
+    tweet_ids = [str(raw.get("id")) for raw in tweets if isinstance(raw, dict) and raw.get("id")]
+    if tweet_ids:
+        try:
+            processed_ids = set(check_processed_tweets(tweet_ids))
+        except Exception as e:
+            print(f"Warning: Batch check failed ({e}). Falling back to individual checks.", file=sys.stderr)
+            processed_ids = None
+    else:
+        processed_ids = set()
+
     for raw in tweets:
         parsed = extract_tweet_info(raw)
         if not parsed["id"]:
             continue
-        if not is_tweet_processed(parsed["id"]):
-            unprocessed_tweets.append(parsed)
+        if processed_ids is not None:
+            if parsed["id"] not in processed_ids:
+                unprocessed_tweets.append(parsed)
+        else:
+            if not is_tweet_processed(parsed["id"]):
+                unprocessed_tweets.append(parsed)
 
     model = os.getenv("ACTIVE_MODEL", "xai/grok-4-1-fast-non-reasoning")
 
