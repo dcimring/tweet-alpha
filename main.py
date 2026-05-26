@@ -27,7 +27,7 @@ if not CONVEX_URL:
 convex_client = ConvexClient(CONVEX_URL)
 
 class BirdCredentialError(Exception):
-    """Exception raised when bird CLI fails due to missing or invalid credentials."""
+    """Exception raised when xurl CLI fails due to missing or invalid credentials."""
     pass
 
 def init_db():
@@ -287,14 +287,15 @@ def send_discord_alert(webhook_url, username, tweet_id, text, tickers, signal):
         print(f"Error sending Discord alert: {e}", file=sys.stderr)
 
 def send_discord_credential_error_alert(webhook_url, error_message):
-    """Send an alert to Discord notifying that bird credentials have failed or expired."""
+    """Send an alert to Discord notifying that xurl credentials have failed or expired."""
+    app_name = os.getenv("XURL_APP_NAME", "your_xurl_app_name_here")
     embed = {
-        "title": "❌ BIRD CREDENTIALS ERROR",
-        "description": "The `bird` CLI tool encountered a credentials error when trying to fetch the list timeline. Please refresh the Twitter credentials.",
+        "title": "❌ XURL CREDENTIALS ERROR",
+        "description": f"The `xurl` CLI tool (app: `{app_name}`) encountered an authorization or credentials error when trying to fetch the list timeline.",
         "color": 0xFF9900, # Orange for warning/action required
         "fields": [
             {"name": "Error Details", "value": f"```\n{error_message[:1000]}\n```", "inline": False},
-            {"name": "Action Required", "value": "Check the `.env` file and update `TWITTER_AUTH_TOKEN` and `TWITTER_CT0` with fresh cookies.", "inline": False}
+            {"name": "Action Required", "value": f"Run `xurl auth oauth2 --app {app_name}` in your terminal to complete the authorization flow again.", "inline": False}
         ],
         "footer": {"text": "Tweet Alpha Tracker — System Alert"}
     }
@@ -323,14 +324,14 @@ def run_tracker(list_id, api_key, webhook_url):
         print(f"Failed to fetch tweets: {e}", file=sys.stderr)
         return
 
-    # bird CLI can return an array or an object containing { tweets }
+    # xurl CLI can return an array or an object containing { tweets }
     tweets = []
     if isinstance(raw_tweets, dict) and "tweets" in raw_tweets:
         tweets = raw_tweets["tweets"]
     elif isinstance(raw_tweets, list):
         tweets = raw_tweets
     else:
-        print("Unexpected bird CLI output format.", file=sys.stderr)
+        print("Unexpected xurl CLI output format.", file=sys.stderr)
         return
 
     unprocessed_tweets = []
