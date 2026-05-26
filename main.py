@@ -114,7 +114,10 @@ def extract_json(stdout_str):
 
 def fetch_tweets(list_id):
     """Invoke xurl CLI to read the list timeline as JSON."""
-    cmd = ["xurl", f"/2/lists/{list_id}/tweets?expansions=author_id&user.fields=username"]
+    app_name = os.getenv("XURL_APP_NAME")
+    if not app_name:
+        raise RuntimeError("XURL_APP_NAME is not defined in the environment variables.")
+    cmd = ["xurl", "--app", app_name, f"/2/lists/{list_id}/tweets?expansions=author_id&user.fields=username"]
     print(f"Executing: {' '.join(cmd)}")
     
     # Run the xurl subprocess
@@ -422,6 +425,7 @@ def main():
     list_id = os.getenv("TWITTER_LIST_ID")
     api_key = os.getenv("XAI_API_KEY")
     webhook_url = os.getenv("DISCORD_WEBHOOK_URL")
+    xurl_app = os.getenv("XURL_APP_NAME")
 
     if not list_id:
         print("Error: TWITTER_LIST_ID is not defined in the environment variables.", file=sys.stderr)
@@ -429,6 +433,10 @@ def main():
 
     if not api_key:
         print("Error: XAI_API_KEY is not defined in the environment variables.", file=sys.stderr)
+        sys.exit(1)
+
+    if not xurl_app:
+        print("Error: XURL_APP_NAME is not defined in the environment variables.", file=sys.stderr)
         sys.exit(1)
 
     init_db()
