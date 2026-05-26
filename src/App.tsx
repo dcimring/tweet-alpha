@@ -222,7 +222,7 @@ export default function App() {
       <main className="dashboard-grid">
         
         {/* Left Column: Live Alpha Feed */}
-        <section className="glass-panel">
+        <section className="glass-panel alpha-stream-card">
           <div className="section-title">
             <Activity size={18} color="#6366f1" />
             <span>Live Alpha Stream</span>
