@@ -28,7 +28,7 @@ import {
 
 export default function App() {
   // Real-time Convex Queries
-  const recentTweets = useQuery(api.tweets.getRecentTweets, { limit: 100 });
+  const recentTweets = useQuery(api.tweets.getRecentTweets, { limit: 1000 });
   const tweetStats = useQuery(api.tweets.getTweetStats);
   const recentRuns = useQuery(api.runs.getRecentRuns, { limit: 50 });
   const runStats = useQuery(api.runs.getRunStats);
