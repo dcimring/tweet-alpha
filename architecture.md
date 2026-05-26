@@ -10,7 +10,7 @@ The Tweet Alpha Tracker is a lightweight automated tool that reads tweets from a
 
 ```mermaid
 graph TD
-    A[Timer / Loop / CLI Trigger] --> B[Fetch List Timeline via bird CLI]
+    A[Timer / Loop / CLI Trigger] --> B[Fetch List Timeline via xurl CLI]
     B --> C[Parse Tweets JSON]
     C --> D[Filter Unprocessed Tweets via Convex]
     D -->|New Tweets Only| E[Analyze Sentiment via LiteLLM]
@@ -24,12 +24,12 @@ graph TD
 
 ## 2. Component Breakdown
 
-### A. Scraper / Fetcher (`bird` CLI Wrapper)
-- **Tool**: The application invokes the external Node-based `@steipete/bird` CLI tool using Python's `subprocess` module.
-- **Arguments**: Runs `bird list-timeline <LIST_ID> --json`.
-- **Session Auth**: Since system-level sandboxing can prevent automatic browser cookie reading, the wrapper forwards `TWITTER_AUTH_TOKEN` and `TWITTER_CT0` from the `.env` file via `AUTH_TOKEN` and `CT0` environment variables to the subprocess.
-- **Robust JSON Parsing**: Safely extracts the tweet ID, tweet text, and author handle across several legacy and modern GraphQL shapes that the bird output may render.
-- **Credential Failure Detection**: If the subprocess execution returns a non-zero exit code, the wrapper scans `stdout` and `stderr` for credential-related signatures (e.g. `HTTP 401`, `Could not authenticate`, `Missing credentials`, or missing tokens warnings). If detected, it raises a custom `BirdCredentialError` exception to trigger a warning dispatch.
+### A. Scraper / Fetcher (`xurl` CLI Wrapper)
+- **Tool**: The application invokes the official `xurl` CLI tool using Python's `subprocess` module.
+- **Arguments**: Runs `xurl "/2/lists/<LIST_ID>/tweets?expansions=author_id&user.fields=username"`.
+- **Session Auth**: Managed outside the application via local X/Twitter authorization (PKCE/OAuth) securely stored in the system configuration. The application requires no environment-level cookie injection.
+- **Robust JSON Parsing**: Decodes the standard X API v2 payload. Maps each tweet's `author_id` to its corresponding `username` handle within the `includes.users` metadata block, rendering a unified array of normalized tweet structures.
+- **Credential Failure Detection**: Scans subprocess exit codes and searches stderr for credential-related signatures (e.g. `401`, `unauthorized`, `expired`). If detected, raises `BirdCredentialError` (retained for backward compatibility) to dispatch an alert embed to the Discord webhook.
 
 ### B. Database Layer (Convex)
 - **Service**: Hosted Convex Backend (real-time BaaS platform)
@@ -95,8 +95,8 @@ graph TD
    - Loads `.env` and `.env.local` configurations to retrieve `CONVEX_URL`.
    - Establishes a lightweight connection to the Convex backend using `ConvexClient`.
 2. **Fetch Phase**:
-   - Executes the `bird` list-timeline command.
-   - Decodes stdout from JSON bytes to an array of tweet objects.
+   - Executes the `xurl` v2 list tweets API endpoint.
+   - Decodes stdout from JSON and constructs a normalized list of tweet objects with usernames mapped from expansions.
    - Scans output for credentials issues; if a credentials error is found, raises `BirdCredentialError`, sends a system alert embed to the Discord webhook, and gracefully aborts the current run.
 3. **Filter Phase**:
    - Queries the Convex backend database for each tweet ID using the `tweets:isTweetProcessed` query.

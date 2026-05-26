@@ -113,74 +113,68 @@ def extract_json(stdout_str):
     return json.loads(stdout_str[start_idx:end_idx+1])
 
 def fetch_tweets(list_id):
-    """Invoke bird CLI to read the list timeline as JSON."""
-    env = os.environ.copy()
-    
-    # Inject Twitter credentials if present in the dotenv configurations
-    auth_token = os.getenv("TWITTER_AUTH_TOKEN")
-    ct0 = os.getenv("TWITTER_CT0")
-    if auth_token:
-        env["AUTH_TOKEN"] = auth_token
-    if ct0:
-        env["CT0"] = ct0
-
-    cmd = ["bird", "list-timeline", str(list_id), "--json"]
+    """Invoke xurl CLI to read the list timeline as JSON."""
+    cmd = ["xurl", f"/2/lists/{list_id}/tweets?expansions=author_id&user.fields=username"]
     print(f"Executing: {' '.join(cmd)}")
     
-    # Run the bird subprocess
-    result = subprocess.run(cmd, env=env, capture_output=True, text=True)
+    # Run the xurl subprocess
+    result = subprocess.run(cmd, capture_output=True, text=True)
     
     if result.returncode != 0:
-        print(f"Error executing bird CLI (code {result.returncode}):", file=sys.stderr)
+        print(f"Error executing xurl CLI (code {result.returncode}):", file=sys.stderr)
         print(result.stderr, file=sys.stderr)
         
         # Check if the error is due to credentials
         error_msg = (result.stderr or "") + "\n" + (result.stdout or "")
-        if ("Could not authenticate" in error_msg or 
-            "Missing required credentials" in error_msg or 
-            "HTTP 401" in error_msg or
-            "Missing auth_token" in error_msg or
-            "Missing ct0" in error_msg or
-            "auth_token: not found" in error_msg or
-            "ct0: not found" in error_msg):
-            raise BirdCredentialError(f"bird credential error detected: {result.stderr.strip() if result.stderr else 'missing or invalid credentials'}")
+        if any(sig in error_msg.lower() for sig in ["401", "unauthorized", "invalid token", "expired", "credentials", "auth"]):
+            raise BirdCredentialError(f"xurl credential error detected: {result.stderr.strip() if result.stderr else 'missing or invalid credentials'}")
             
-        raise RuntimeError("bird CLI command failed.")
+        raise RuntimeError("xurl CLI command failed.")
         
-    return extract_json(result.stdout)
+    try:
+        data = extract_json(result.stdout)
+    except Exception as e:
+        print(f"Failed to parse xurl JSON output: {e}", file=sys.stderr)
+        raise e
+
+    # Map the v2 API response to a flat list of tweet dicts
+    tweets_list = []
+    if isinstance(data, dict):
+        tweets_data = data.get("data", [])
+        includes = data.get("includes", {})
+        users = includes.get("users", [])
+        
+        # Create map of author_id -> username
+        users_map = {}
+        for u in users:
+            u_id = u.get("id")
+            u_name = u.get("username")
+            if u_id and u_name:
+                users_map[str(u_id)] = u_name
+                
+        for tweet in tweets_data:
+            tweet_id = tweet.get("id")
+            text = tweet.get("text") or ""
+            author_id = tweet.get("author_id")
+            username = users_map.get(str(author_id), "unknown") if author_id else "unknown"
+            tweets_list.append({
+                "id": tweet_id,
+                "text": text,
+                "username": username
+            })
+            
+    return tweets_list
 
 def extract_tweet_info(tweet):
-    """Safely extracts key fields from the bird JSON tweet schema."""
-    tweet_id = tweet.get("id") or tweet.get("id_str") or tweet.get("rest_id")
-    if not tweet_id and "legacy" in tweet:
-        tweet_id = tweet["legacy"].get("id_str") or tweet["legacy"].get("id")
-    
-    text = (
-        tweet.get("text") or 
-        tweet.get("fullText") or 
-        tweet.get("full_text") or
-        tweet.get("body")
-    )
-    if not text and "legacy" in tweet:
-        text = tweet["legacy"].get("full_text") or tweet["legacy"].get("text")
-    if not text and "note_tweet" in tweet:
-        text = tweet["note_tweet"].get("text")
-        
-    user_handle = None
-    user_obj = tweet.get("author") or tweet.get("user")
-    if user_obj:
-        user_handle = user_obj.get("username") or user_obj.get("screen_name") or user_obj.get("screenName")
-    
-    if not user_handle and "core" in tweet:
-        try:
-            user_handle = tweet["core"]["user_results"]["result"]["legacy"]["screen_name"]
-        except (KeyError, TypeError):
-            pass
+    """Safely extracts key fields from the tweet schema."""
+    tweet_id = tweet.get("id")
+    text = tweet.get("text")
+    username = tweet.get("username")
             
     return {
         "id": str(tweet_id) if tweet_id else None,
         "text": text or "",
-        "username": user_handle or "unknown"
+        "username": username or "unknown"
     }
 
 def clean_grok_response(response_text):

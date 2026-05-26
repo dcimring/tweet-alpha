@@ -44,13 +44,37 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 2. Configure Node & Frontend Dependencies
+### 2. Install and Authorize the xurl CLI
+Install the official X API command line tool on your machine:
+- **macOS (via Homebrew)**:
+  ```bash
+  brew install --cask xdevplatform/tap/xurl
+  ```
+- **Node.js (via npm)**:
+  ```bash
+  npm install -g @xdevplatform/xurl
+  ```
+
+Once installed, register your Client ID and Secret from the X Developer Portal and complete the OAuth 2.0 authorization flow manually in your terminal:
+```bash
+# Register your X App
+xurl auth apps add my-app --client-id YOUR_CLIENT_ID --client-secret YOUR_CLIENT_SECRET
+
+# Authorize and authenticate your account
+xurl auth oauth2 --app my-app
+xurl auth default my-app
+
+# Verify setup
+xurl whoami
+```
+
+### 3. Configure Node & Frontend Dependencies
 Install Vite, React, Convex, Recharts, and TypeScript:
 ```bash
 npm install
 ```
 
-### 3. Environment Variables Config
+### 4. Environment Variables Config
 Copy `.env.template` to `.env` and fill in your keys:
 ```bash
 cp .env.template .env
@@ -68,10 +92,6 @@ VITE_CONVEX_URL=https://your-project.convex.cloud
 
 # Backend Secret Key for Convex mutation protection (must match BACKEND_SECRET_KEY set in Convex Cloud)
 BACKEND_SECRET_KEY=your_backend_secret_key_here
-
-# Optional: Add these if bird CLI requires session cookie overrides
-TWITTER_AUTH_TOKEN=your_auth_token_here
-TWITTER_CT0=your_ct0_here
 ```
 
 ---
@@ -115,7 +135,7 @@ python3 main.py
 
 - **`convex/`**: Serverless database schemas, TypeScript models, indexes, and real-time public queries.
 - **`src/`**: React application root, components (`App.tsx`), design styles (`index.css`), and Vite client types.
-- **`main.py`**: Main scraper execution loop connecting to the `bird` CLI, LiteLLM API, and sending mutations/queries to Convex.
+- **`main.py`**: Main scraper execution loop connecting to the `xurl` CLI, LiteLLM API, and sending mutations/queries to Convex.
 - **`architecture.md`**: Inside-out detailed engineering reference guide.
 - **`vite.config.ts` & `tsconfig.json`**: Bundling and strict TypeScript configurations.
 - **`model_costs.py`**: Utility CLI tool to view and search updated LLM input/output token pricing.
