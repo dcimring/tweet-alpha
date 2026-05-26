@@ -62,6 +62,7 @@ graph TD
   - `"signal"`: Sentiment classification string (`"buy"`, `"sell"`, `"bullish"`, `"bearish"`, or `"neutral"`)
 - **Error Retries & Resilience**: The completion call wraps LiteLLM requests in a robust retry handler with exponential backoff (up to 5 attempts, starting at 2 seconds). Known permanent exceptions (e.g. invalid API key or bad request) bypass retries, while transient network issues, 503 Service Unavailable, and 429 Rate Limit conditions are automatically retried to ensure reliability.
 - **JSON Sanitization**: Robustly strips markdown wrappers (such as ```json) before passing results to the JSON parser.
+- **Guaranteed Ticker Deduplication**: Filters out redundant stock or crypto tickers returned by the model while preserving their original order, stripping whitespace, and normalizing them to uppercase (e.g., converting `["LPTH", "BB", "ABCL", "BB"]` to `["LPTH", "BB", "ABCL"]`). This guarantees a clean, unique list across downstream CLI logs, Convex database storage, and Discord alerts.
 
 ### D. Console Output
 - Renders a clean, tabular layout using Python's native f-strings to display:

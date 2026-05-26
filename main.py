@@ -403,6 +403,19 @@ def run_tracker(list_id, api_key, webhook_url):
             total_cost += call_cost
             
             tickers = analysis.get("tickers", [])
+            # Deduplicate tickers while preserving order
+            if isinstance(tickers, list):
+                seen = set()
+                unique_tickers = []
+                for t in tickers:
+                    if isinstance(t, str):
+                        t_clean = t.strip().upper()
+                        if t_clean and t_clean not in seen:
+                            seen.add(t_clean)
+                            unique_tickers.append(t_clean)
+                tickers = unique_tickers
+            else:
+                tickers = []
             signal = analysis.get("signal", "neutral").lower()
             
             # Print to local CLI console table
