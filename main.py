@@ -453,11 +453,11 @@ def main():
             except Exception as e:
                 print(f"Error in execution loop: {e}", file=sys.stderr)
             
-            next_run = datetime.now() + timedelta(hours=1)
+            next_run = datetime.now() + timedelta(minutes=15)
             next_run_str = next_run.strftime("%Y-%m-%d %H:%M:%S")
-            print(f"Sleeping for 1 hour... (Next run at: {next_run_str})")
+            print(f"Sleeping for 15 minutes... (Next run at: {next_run_str})")
             try:
-                time.sleep(3600)
+                time.sleep(900)
             except KeyboardInterrupt:
                 print("\nDaemon terminated by user. Exiting.")
                 break
