@@ -141,4 +141,5 @@ The dashboard provides a real-time command terminal to monitor, search, and anal
    - **Sentiment Mix**: A custom Recharts inner-donut PieChart rendering the exact proportion of each sentiment signal.
    - **Execution Costs Trend**: A Recharts LineChart mapping the execution expenses and efficiency across recent scraping runs in chronological sequence.
 6. **Background Runs Log**: Real-time monitor of scraper cron jobs tracking execution timestamps, new tweets processed, exact model used, and run costs.
+7. **Real-time Sound Notification Alerts**: Emits a pleasant retro-futuristic double chime sound when a new high-severity signal (`buy` or `sell`) is processed and appended to the data stream. Built using the browser's native Web Audio API (completely self-contained, zero asset load delay). Includes a persistent audio setting toggle (`SOUNDS ON` / `MUTED`) and a manual `TEST` trigger in the navigation header, fully responsive on all screen sizes.
 

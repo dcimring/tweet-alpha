@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 import {
@@ -11,8 +11,55 @@ import {
   RefreshCw,
   TrendingDown,
   LineChart as LineChartIcon,
-  PieChart as PieChartIcon
+  PieChart as PieChartIcon,
+  Volume2,
+  VolumeX
 } from "lucide-react";
+
+// Synthesizes a premium dual-tone brutalist chime using Web Audio API
+function playAlertSound() {
+  try {
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextClass) return;
+    const ctx = new AudioContextClass();
+    
+    const now = ctx.currentTime;
+    
+    // First pleasant tone (perfect fifth interval / melodic vibe)
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.type = "sine";
+    osc1.frequency.setValueAtTime(587.33, now); // D5
+    osc1.frequency.exponentialRampToValueAtTime(880, now + 0.1); // A5
+    
+    gain1.gain.setValueAtTime(0.12, now);
+    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+    
+    osc1.connect(gain1);
+    gain1.connect(ctx.destination);
+    
+    osc1.start(now);
+    osc1.stop(now + 0.35);
+
+    // Second tone (slightly delayed, resolving to an octave)
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = "sine";
+    osc2.frequency.setValueAtTime(880, now + 0.12); // A5
+    osc2.frequency.exponentialRampToValueAtTime(1174.66, now + 0.22); // D6
+    
+    gain2.gain.setValueAtTime(0.12, now + 0.12);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+    
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    
+    osc2.start(now + 0.12);
+    osc2.stop(now + 0.45);
+  } catch (err) {
+    console.error("Failed to play alert sound:", err);
+  }
+}
 import {
   XAxis,
   YAxis,
@@ -32,6 +79,41 @@ export default function App() {
   const tweetStats = useQuery(api.tweets.getTweetStats);
   const recentRuns = useQuery(api.runs.getRecentRuns, { limit: 50 });
   const runStats = useQuery(api.runs.getRunStats);
+
+  // Sound settings state
+  const [soundEnabled, setSoundEnabled] = useState(true);
+
+  // Track already seen tweet IDs in a ref to avoid playing sound on initial load or duplicate runs
+  const seenTweetIds = useRef<Set<string>>(new Set());
+  const isInitialLoad = useRef(true);
+
+  // Monitor for new buy/sell alerts in the real-time query stream
+  useEffect(() => {
+    if (!recentTweets) return;
+
+    if (isInitialLoad.current) {
+      // Initialize with existing tweet IDs on initial mount
+      recentTweets.forEach((t) => {
+        seenTweetIds.current.add(t._id);
+      });
+      isInitialLoad.current = false;
+      return;
+    }
+
+    let hasNewBuySell = false;
+    recentTweets.forEach((t) => {
+      if (!seenTweetIds.current.has(t._id)) {
+        seenTweetIds.current.add(t._id);
+        if (t.signal === "buy" || t.signal === "sell") {
+          hasNewBuySell = true;
+        }
+      }
+    });
+
+    if (hasNewBuySell && soundEnabled) {
+      playAlertSound();
+    }
+  }, [recentTweets, soundEnabled]);
 
   // Loading indicator helper
   const isLoading = recentTweets === undefined || tweetStats === undefined || recentRuns === undefined || runStats === undefined;
@@ -146,9 +228,29 @@ export default function App() {
           </div>
           <div className="brand-text">Tweet Alpha Terminal</div>
         </div>
-        <div className="live-status">
-          <div className="live-pulse" />
-          <span>REAL-TIME STREAMING</span>
+        <div className="nav-right">
+          <div className="live-status">
+            <div className="live-pulse" />
+            <span>REAL-TIME STREAMING</span>
+          </div>
+          <div className="sound-controls">
+            <button
+              className={`sound-toggle-btn ${soundEnabled ? "enabled" : "disabled"}`}
+              onClick={() => setSoundEnabled(!soundEnabled)}
+              title={soundEnabled ? "Mute sounds" : "Unmute sounds"}
+            >
+              {soundEnabled ? <Volume2 size={14} /> : <VolumeX size={14} />}
+              <span>{soundEnabled ? "SOUNDS ON" : "MUTED"}</span>
+            </button>
+            <button
+              className="sound-test-btn"
+              onClick={() => soundEnabled && playAlertSound()}
+              disabled={!soundEnabled}
+              title={soundEnabled ? "Test alert sound" : "Sounds are muted"}
+            >
+              TEST
+            </button>
+          </div>
         </div>
       </header>
 
