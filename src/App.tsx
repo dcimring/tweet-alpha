@@ -75,7 +75,13 @@ export default function App() {
       // Ticker filter matches
       let matchesTicker = true;
       if (selectedTicker !== "ALL") {
-        const list = t.tickers.split(",").map((s) => s.trim().toUpperCase());
+        const list = t.tickers.split(",").map((s) => {
+          let clean = s.trim().toUpperCase();
+          while (clean.startsWith("$")) {
+            clean = clean.substring(1);
+          }
+          return clean;
+        });
         matchesTicker = list.includes(selectedTicker);
       }
 
@@ -319,7 +325,10 @@ export default function App() {
                     <div className="tweet-tickers-row">
                       {t.tickers &&
                         t.tickers.split(",").map((tick) => {
-                          const cleanTick = tick.trim().toUpperCase();
+                          let cleanTick = tick.trim().toUpperCase();
+                          while (cleanTick.startsWith("$")) {
+                            cleanTick = cleanTick.substring(1);
+                          }
                           if (!cleanTick) return null;
                           return (
                             <span

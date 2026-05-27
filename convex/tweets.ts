@@ -130,7 +130,13 @@ export const getTweetStats = query({
     for (const t of allTweets) {
       signalCounts[t.signal] = (signalCounts[t.signal] || 0) + 1;
       if (t.tickers) {
-        const list = t.tickers.split(",").map((s) => s.trim().toUpperCase());
+        const list = t.tickers.split(",").map((s) => {
+          let clean = s.trim().toUpperCase();
+          while (clean.startsWith("$")) {
+            clean = clean.substring(1);
+          }
+          return clean;
+        });
         for (const ticker of list) {
           if (ticker) {
             tickerCounts[ticker] = (tickerCounts[ticker] || 0) + 1;

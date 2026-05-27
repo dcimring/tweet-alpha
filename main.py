@@ -409,7 +409,7 @@ def run_tracker(list_id, api_key, webhook_url):
                 unique_tickers = []
                 for t in tickers:
                     if isinstance(t, str):
-                        t_clean = t.strip().upper()
+                        t_clean = t.strip().upper().lstrip('$')
                         if t_clean and t_clean not in seen:
                             seen.add(t_clean)
                             unique_tickers.append(t_clean)
