@@ -1,11 +1,12 @@
-# Explicitly force Nixpacks to include the Python environment engine
-providers = ["python"]
+# Explicitly tell Nixpacks to build this container using the standard Python provider syntax
+[providers]
+python = {}
 
-# Download and install xurl during the setup phase
+# Force Python and Curl to install directly via Nix packages during the setup phase
 [phases.setup]
-nixPkgs = ["curl"]
+nixPkgs = ["python3", "curl"]
 cmds = ["curl -fsSL https://raw.githubusercontent.com/xdevplatform/xurl/main/install.sh | bash"]
 
-# Ensure the xurl binary directory is permanently appended to the container's system PATH
+# Ensure both Python and xurl paths are cleanly recognized across the entire container environment
 [env]
-PATH = "/home/nixpacks/.local/bin:$PATH"
+PATH = "/home/nixpacks/.local/bin:/opt/venv/bin:$PATH"

@@ -150,6 +150,6 @@ The dashboard provides a real-time command terminal to monitor, search, and anal
 The tracker daemon is designed for persistent background deployment on a **Coolify** server.
 
 - **Process Manager Integration**: A standard, extensionless `Procfile` is placed in the `backend/` directory of the project.
-- **Build Environment Configuration (`nixpacks.toml`)**: Configures Nixpacks to explicitly use the Python environment engine (`providers = ["python"]`), installs `curl` during the setup phase, downloads and installs the `xurl` binary from its installer script, and permanently appends the `xurl` binary directory to the system `PATH` env var (`/home/nixpacks/.local/bin:$PATH`).
+- **Build Environment Configuration (`nixpacks.toml`)**: Configures Nixpacks to explicitly build the container using the standard Python provider syntax (`[providers] python = {}`), forces `python3` and `curl` to install directly via Nix packages during the setup phase, downloads and installs the `xurl` binary from its installer script, and ensures both Python and `xurl` paths are cleanly recognized by prepending them to the system `PATH` env var (`/home/nixpacks/.local/bin:/opt/venv/bin:$PATH`).
 - **Process Target**: Declares `worker: python main.py` to instruct Coolify to spawn and maintain the Python daemon as a persistent worker process from the `backend/` directory.
 - **Automatic Daemon Loops**: Runs infinitely in the background, querying the targeted Twitter list and updating Convex every 15 minutes, with built-in credentials failure reporting.
