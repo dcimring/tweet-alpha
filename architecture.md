@@ -79,7 +79,7 @@ graph TD
 - Includes fields detailing the poster, tickers, tweet content, and a direct clickable URL back to the tweet on X.
 - **Credential Failure Alerts**: If the wrapper detects a credentials error, it dispatches an orange embed alert (`0xFF9900`) detailing the specific failure logs to the configured Discord Webhook to prompt credential renewal.
 
-### F. Model Cost Viewer Utility (`model_costs.py`)
+### F. Model Cost Viewer Utility (`backend/model_costs.py`)
 - **Purpose**: A standalone command-line tool to inspect and compare token pricing (input and output costs) across diverse LLMs supported by LiteLLM.
 - **Features**:
   - Dynamically extracts pricing metadata from `genai-prices` snapshot database first for absolute accuracy.
@@ -149,6 +149,6 @@ The dashboard provides a real-time command terminal to monitor, search, and anal
 
 The tracker daemon is designed for persistent background deployment on a **Coolify** server.
 
-- **Process Manager Integration**: A standard, extensionless `Procfile` is placed at the root of the project.
-- **Process Target**: Declares `worker: python main.py` to instruct Coolify to spawn and maintain the Python daemon as a persistent worker process.
+- **Process Manager Integration**: A standard, extensionless `Procfile` is placed in the `backend/` directory of the project.
+- **Process Target**: Declares `worker: python main.py` to instruct Coolify to spawn and maintain the Python daemon as a persistent worker process from the `backend/` directory.
 - **Automatic Daemon Loops**: Runs infinitely in the background, querying the targeted Twitter list and updating Convex every 15 minutes, with built-in credentials failure reporting.

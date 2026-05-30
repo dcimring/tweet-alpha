@@ -220,7 +220,8 @@ def analyze_tweet_sentiment(api_key, text):
         "- Tweet: 'Added some spot $BB at $6.13' -> Signal: 'buy'\n"
         "- Tweet: 'BTC looks primed for a breakout to 100k soon' -> Signal: 'bullish'\n"
         "- Tweet: 'Exited my Solana position entirely' -> Signal: 'sell'\n"
-        "- Tweet: 'ETH is looking weak, expect further downside' -> Signal: 'bearish'\n\n"
+        "- Tweet: 'ETH is looking weak, expect further downside' -> Signal: 'bearish'\n"
+        "- Tweet: 'neutral' -> Signal: 'neutral'\n\n"
         "Format the output strictly as raw JSON with keys 'tickers' (array of strings) and 'signal' (string).\n"
         "Do not include markdown blocks or any text outside of the raw JSON."
     )

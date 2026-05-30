@@ -41,7 +41,7 @@ Install core Python dependencies for scraping and LLM processing:
 ```bash
 python3 -m venv venv
 source venv/bin/activate
-pip install -r requirements.txt
+pip install -r backend/requirements.txt
 ```
 
 ### 2. Install and Authorize the xurl CLI
@@ -123,20 +123,23 @@ The terminal dashboard will be accessible at: 👉 **[http://localhost:5174](htt
 Runs the main automated fetch and extraction pipeline:
 ```bash
 # Run a single fetch check and exit
-python3 main.py --once
+python3 backend/main.py --once
 
 # Or run as a daemon loop checking every hour
-python3 main.py
+python3 backend/main.py
 ```
 
 ---
 
 ## 📂 Project Structure
 
+- **`backend/`**: Reorganized Python daemon code and deployment config.
+  - **`main.py`**: Main scraper execution loop connecting to the `xurl` CLI, LiteLLM API, and sending mutations/queries to Convex.
+  - **`model_costs.py`**: Utility CLI tool to view and search updated LLM input/output token pricing.
+  - **`requirements.txt`**: Core dependencies for Python scraper daemon.
+  - **`Procfile`**: Deploy script declaring background daemon worker process.
 - **`convex/`**: Serverless database schemas, TypeScript models, indexes, and real-time public queries.
 - **`src/`**: React application root, components (`App.tsx`), design styles (`index.css`), and Vite client types.
-- **`main.py`**: Main scraper execution loop connecting to the `xurl` CLI, LiteLLM API, and sending mutations/queries to Convex.
 - **`architecture.md`**: Inside-out detailed engineering reference guide.
 - **`vite.config.ts` & `tsconfig.json`**: Bundling and strict TypeScript configurations.
-- **`model_costs.py`**: Utility CLI tool to view and search updated LLM input/output token pricing.
 
