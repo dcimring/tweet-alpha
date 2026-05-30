@@ -39,9 +39,10 @@ An automated financial screening pipeline that monitors X (Twitter) lists, extra
 ### 1. Configure the Python Virtual Environment
 Install core Python dependencies for scraping and LLM processing:
 ```bash
+cd backend
 python3 -m venv venv
 source venv/bin/activate
-pip install -r backend/requirements.txt
+pip install -r requirements.txt
 ```
 
 ### 2. Install and Authorize the xurl CLI
