@@ -30,50 +30,25 @@ convex_client = ConvexClient(CONVEX_URL)
 
 def init_xurl():
     """
-    Initializes the xurl configuration by injecting credentials from 
-    the Coolify environment variables into a writable persistent volume 
-    and symlinking it to the expected location (~/.xurl).
+    Directly provisions your consolidated configuration file straight to 
+    the active root user's home directory inside the Coolify container.
     """
-    # 1. Define paths inside the Nixpacks container
-    persistent_dir = Path("/home/nixpacks/.config/xurl_data")
-    persistent_file = persistent_dir / "config"
-    target_link = Path("/home/nixpacks/.xurl")
+    # Define the precise file path where the root user binary looks
+    root_config_file = Path("/root/.xurl")
     
-    # 2. If running in Coolify and the file doesn't exist yet, provision it
+    # Read your raw consolidated YAML block from Coolify Env variables
     raw_yaml = os.environ.get("XURL_CONFIG_DATA")
-    if raw_yaml and not persistent_file.exists():
-        try:
-            persistent_dir.mkdir(parents=True, exist_ok=True)
-            
-            # Write the initial credentials from your Coolify Env panel
-            persistent_file.write_text(raw_yaml.strip())
-            print("🚀 Initial xurl credentials provisioned in persistent storage.")
-        except Exception as e:
-            print(f"⚠️ Could not provision initial xurl credentials: {e}", file=sys.stderr)
+    
+    if raw_yaml:
+        # Ensure the parent directory exists (just in case)
+        root_config_file.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Write the file directly to /root/.xurl
+        root_config_file.write_text(raw_yaml.strip())
+        print("🚀 Consolidated xurl configuration written directly to /root/.xurl")
+    else:
+        print("⚠️ XURL_CONFIG_DATA environment variable not found.")
 
-    # 3. Handle symlinking to ensure xurl can read and write to the volume
-    if persistent_file.exists():
-        try:
-            if target_link.is_symlink() or target_link.exists():
-                # If a broken symlink or old file exists, clear it to avoid conflicts
-                if not target_link.is_symlink() or os.readlink(str(target_link)) != str(persistent_file):
-                    target_link.unlink(missing_ok=True)
-            
-            # Create the symlink if it doesn't exist
-            if not target_link.exists():
-                target_link.symlink_to(persistent_file)
-                print("🔗 Symlink created. xurl can now read and write tokens dynamically.")
-                
-                # Double-check that the binary can see the authenticated session
-                try:
-                    result = subprocess.run(["xurl", "auth", "status"], capture_output=True, text=True, check=True)
-                    print(f"✅ xurl Auth Status: {result.stdout.strip()}")
-                except Exception as e:
-                    print(f"⚠️ Could not verify xurl status: {e}")
-        except Exception as e:
-            print(f"⚠️ Error handling xurl symlinking: {e}", file=sys.stderr)
-
-# Run the initialization immediately upon script boot
 init_xurl()
 
 class BirdCredentialError(Exception):
