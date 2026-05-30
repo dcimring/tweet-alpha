@@ -198,8 +198,9 @@ def fetch_tweets(list_id):
     result = subprocess.run(cmd, capture_output=True, text=True)
     
     if result.returncode != 0:
-        print(f"Error executing xurl CLI (code {result.returncode}):", file=sys.stderr)
-        print(result.stderr, file=sys.stderr)
+        print(f"Error executing xurl CLI (code {result.returncode}):")
+        print(f"STDOUT:\n{result.stdout}")
+        print(f"STDERR:\n{result.stderr}")
         
         # Check if the error is due to credentials
         error_msg = (result.stderr or "") + "\n" + (result.stdout or "")
