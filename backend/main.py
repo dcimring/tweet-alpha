@@ -33,21 +33,62 @@ def init_xurl():
     Directly provisions your consolidated configuration file straight to 
     the active root user's home directory inside the Coolify container.
     """
-    # Define the precise file path where the root user binary looks
+    print("--- [xurl Debug Info] ---")
+    import getpass
+    print(f"Current OS User (getpass): {getpass.getuser()}")
+    print(f"Current UID: {os.getuid() if hasattr(os, 'getuid') else 'N/A'}")
+    print(f"HOME Env Var: {os.environ.get('HOME')}")
+    print(f"Path.home(): {Path.home()}")
+    
+    # Define paths
     root_config_file = Path("/root/.xurl")
+    home_config_file = Path.home() / ".xurl"
+    nixpacks_config_file = Path("/home/nixpacks/.xurl")
     
-    # Read your raw consolidated YAML block from Coolify Env variables
+    print(f"Checking target paths:")
+    print(f"  - /root/.xurl exists: {root_config_file.exists()}")
+    if root_config_file.exists():
+        try:
+            print(f"    Can read /root/.xurl: {os.access(root_config_file, os.R_OK)}")
+            print(f"    Size of /root/.xurl: {root_config_file.stat().st_size} bytes")
+        except Exception as e:
+            print(f"    Error reading /root/.xurl stats: {e}")
+            
+    print(f"  - Path.home()/.xurl exists: {home_config_file.exists()}")
+    print(f"  - /home/nixpacks/.xurl exists: {nixpacks_config_file.exists()}")
+    
+    # Read raw consolidated YAML block from Env
     raw_yaml = os.environ.get("XURL_CONFIG_DATA")
-    
+    print(f"XURL_CONFIG_DATA Env Var: {'Found' if raw_yaml else 'Not Found'}")
     if raw_yaml:
-        # Ensure the parent directory exists (just in case)
-        root_config_file.parent.mkdir(parents=True, exist_ok=True)
+        print(f"  - Length: {len(raw_yaml)} chars")
+        # Print a tiny safe snippet to help confirm it looks like YAML (first 30 chars)
+        snippet = raw_yaml.strip()[:30].replace('\n', '\\n')
+        print(f"  - Snippet: {snippet}...")
         
-        # Write the file directly to /root/.xurl
-        root_config_file.write_text(raw_yaml.strip())
-        print("🚀 Consolidated xurl configuration written directly to /root/.xurl")
+        # Write to BOTH possible locations to be absolutely sure xurl can find it
+        for target_path in [root_config_file, home_config_file]:
+            try:
+                target_path.parent.mkdir(parents=True, exist_ok=True)
+                target_path.write_text(raw_yaml.strip())
+                print(f"🚀 Consolidated xurl configuration written to {target_path}")
+            except Exception as e:
+                print(f"⚠️ Error writing to {target_path}: {e}")
     else:
         print("⚠️ XURL_CONFIG_DATA environment variable not found.")
+
+    # Execute xurl auth status to inspect what credentials are active
+    print("\nRunning xurl auth status:")
+    try:
+        result = subprocess.run(["xurl", "auth", "status"], capture_output=True, text=True, timeout=10)
+        print(f"STDOUT:\n{result.stdout}")
+        if result.stderr:
+            print(f"STDERR:\n{result.stderr}")
+        print(f"Exit Code: {result.returncode}")
+    except Exception as e:
+        print(f"⚠️ Error running 'xurl auth status': {e}")
+        
+    print("-------------------------\n")
 
 init_xurl()
 
