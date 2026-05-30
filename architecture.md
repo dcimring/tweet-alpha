@@ -33,7 +33,7 @@ graph TD
 
 ### B. Database Layer (Convex)
 - **Service**: Hosted Convex Backend (real-time BaaS platform)
-- **Folder**: `convex/`
+- **Folder**: `frontend/convex/`
 - **Tables**:
   - `processed_tweets`: Caches tweets and extraction results.
     - **Schema**:
@@ -128,7 +128,7 @@ The dashboard provides a real-time command terminal to monitor, search, and anal
 - **Styling**: Modern custom Vanilla CSS with custom HSL design tokens, glassmorphism, responsive grid boundaries, and micro-animations.
 - **Charts**: Recharts library configured with a bespoke theme matching the dark indigo terminal colors.
 
-### B. Core UI Components (`src/App.tsx`)
+### B. Core UI Components (`frontend/src/App.tsx`)
 1. **Live status navigation bar**: Features a green pulsing dot connected to active server synchronization events.
 2. **KPI Metrics Cards**: Real-time counter metrics measuring total tweets screened, alpha signals extracted (bullish or buy), accumulated token execution cost (fixed at 6 decimal places), and scheduler run frequency.
 3. **Interactive Alpha Stream Feed**:
