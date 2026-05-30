@@ -27,7 +27,7 @@ graph TD
 ### A. Scraper / Fetcher (`xurl` CLI Wrapper)
 - **Tool**: The application invokes the official `xurl` CLI tool using Python's `subprocess` module.
 - **Arguments**: Runs `xurl --app <XURL_APP_NAME> "/2/lists/<LIST_ID>/tweets?expansions=author_id&user.fields=username"`, where `<XURL_APP_NAME>` is loaded dynamically from the `backend/.env` configuration.
-- **Session Auth**: Managed outside the application via local X/Twitter authorization (PKCE/OAuth) securely stored in the system configuration. The application requires no environment-level cookie injection.
+- **Session Auth**: For local development, authentication is managed via local X/Twitter authorization (PKCE/OAuth) securely stored in the system configuration. For containerized production deployments (e.g., Coolify), the application automatically initializes `xurl` credentials on script boot via the `init_xurl()` function. This function reads credentials from the `XURL_CONFIG_DATA` environment variable, writes them to a writable persistent volume at `/home/nixpacks/.config/xurl_data/config`, and symlinks it to the expected location (`/home/nixpacks/.xurl`) to support dynamic session read/write events.
 - **Robust JSON Parsing**: Decodes the standard X API v2 payload. Maps each tweet's `author_id` to its corresponding `username` handle within the `includes.users` metadata block, rendering a unified array of normalized tweet structures.
 - **Credential Failure Detection**: Scans subprocess exit codes and searches stderr for credential-related signatures (e.g. `401`, `unauthorized`, `expired`). If detected, raises `BirdCredentialError` (retained for backward compatibility) to dispatch an alert embed to the Discord webhook.
 
@@ -150,5 +150,6 @@ The dashboard provides a real-time command terminal to monitor, search, and anal
 The tracker daemon is designed for persistent background deployment on a **Coolify** server.
 
 - **Process Manager Integration**: A standard, extensionless `Procfile` is placed in the `backend/` directory of the project.
+- **Build Environment Configuration (`nixpacks.toml`)**: Instructs Nixpacks during the setup phase to install `curl` and `ca-certificates`, download and install the `xurl` binary from its installer script, and permanently append the `xurl` binary directory to the system `PATH` env var (`/home/nixpacks/.local/bin:$PATH`).
 - **Process Target**: Declares `worker: python main.py` to instruct Coolify to spawn and maintain the Python daemon as a persistent worker process from the `backend/` directory.
 - **Automatic Daemon Loops**: Runs infinitely in the background, querying the targeted Twitter list and updating Convex every 15 minutes, with built-in credentials failure reporting.
