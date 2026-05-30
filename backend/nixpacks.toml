@@ -1,7 +1,3 @@
-# Explicitly tell Nixpacks to build this container using the standard Python provider syntax
-[providers]
-python = {}
-
 # Force Python and Curl to install directly via Nix packages during the setup phase
 [phases.setup]
 nixPkgs = ["python3", "curl"]
