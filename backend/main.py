@@ -16,8 +16,9 @@ logging.getLogger("LiteLLM").setLevel(logging.ERROR)
 from dotenv import load_dotenv
 from litellm import completion, completion_cost
 
-# Load environment variables
-load_dotenv()
+# Load environment variables from the directory of this script
+script_dir = os.path.dirname(os.path.abspath(__file__))
+load_dotenv(dotenv_path=os.path.join(script_dir, '.env'))
 
 CONVEX_URL = os.getenv("CONVEX_URL")
 if not CONVEX_URL:

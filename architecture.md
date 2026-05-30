@@ -26,7 +26,7 @@ graph TD
 
 ### A. Scraper / Fetcher (`xurl` CLI Wrapper)
 - **Tool**: The application invokes the official `xurl` CLI tool using Python's `subprocess` module.
-- **Arguments**: Runs `xurl --app <XURL_APP_NAME> "/2/lists/<LIST_ID>/tweets?expansions=author_id&user.fields=username"`, where `<XURL_APP_NAME>` is loaded dynamically from the `.env` configuration.
+- **Arguments**: Runs `xurl --app <XURL_APP_NAME> "/2/lists/<LIST_ID>/tweets?expansions=author_id&user.fields=username"`, where `<XURL_APP_NAME>` is loaded dynamically from the `backend/.env` configuration.
 - **Session Auth**: Managed outside the application via local X/Twitter authorization (PKCE/OAuth) securely stored in the system configuration. The application requires no environment-level cookie injection.
 - **Robust JSON Parsing**: Decodes the standard X API v2 payload. Maps each tweet's `author_id` to its corresponding `username` handle within the `includes.users` metadata block, rendering a unified array of normalized tweet structures.
 - **Credential Failure Detection**: Scans subprocess exit codes and searches stderr for credential-related signatures (e.g. `401`, `unauthorized`, `expired`). If detected, raises `BirdCredentialError` (retained for backward compatibility) to dispatch an alert embed to the Discord webhook.
@@ -94,7 +94,7 @@ graph TD
 ## 3. Data Flow Execution Sequence
 
 1. **Initialization**:
-   - Loads `.env` and `.env.local` configurations to retrieve `CONVEX_URL`.
+   - Loads `backend/.env` and `.env.local` configurations to retrieve `CONVEX_URL`.
    - Establishes a lightweight connection to the Convex backend using `ConvexClient`.
 2. **Fetch Phase**:
    - Executes the `xurl` v2 list tweets API endpoint.
