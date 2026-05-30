@@ -1,6 +1,9 @@
-# Tell Nixpacks to download and install xurl during the setup phase
+# Explicitly force Nixpacks to include the Python environment engine
+providers = ["python"]
+
+# Download and install xurl during the setup phase
 [phases.setup]
-nixPkgs = ["curl"] # Removed cacert entirely to eliminate the file path collision
+nixPkgs = ["curl"]
 cmds = ["curl -fsSL https://raw.githubusercontent.com/xdevplatform/xurl/main/install.sh | bash"]
 
 # Ensure the xurl binary directory is permanently appended to the container's system PATH
