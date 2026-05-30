@@ -113,7 +113,7 @@ graph TD
 5. **Post-Run Log**:
    - Calls the `runs:saveRunRecord` mutation to store the overall tracker metrics and execution costs in the Convex backend database.
 6. **Scheduler**:
-   - If executed in daemon mode (default), sleeps for 3600 seconds (1 hour) before restarting the flow.
+   - If executed in daemon mode (default), sleeps for 900 seconds (15 minutes) before restarting the flow.
    - If executed with `--once`, shuts down cleanly.
 
 ---
@@ -143,3 +143,12 @@ The dashboard provides a real-time command terminal to monitor, search, and anal
 6. **Background Runs Log**: Real-time monitor of scraper cron jobs tracking execution timestamps, new tweets processed, exact model used, and run costs.
 7. **Real-time Sound Notification Alerts**: Emits a pleasant retro-futuristic double chime sound when a new high-severity signal (`buy` or `sell`) is processed and appended to the data stream. Built using the browser's native Web Audio API (completely self-contained, zero asset load delay). Includes a persistent audio setting toggle (`SOUNDS ON` / `MUTED`) and a manual `TEST` trigger in the navigation header, fully responsive on all screen sizes.
 
+---
+
+## 5. Deployment & Hosting (Coolify)
+
+The tracker daemon is designed for persistent background deployment on a **Coolify** server.
+
+- **Process Manager Integration**: A standard, extensionless `Procfile` is placed at the root of the project.
+- **Process Target**: Declares `worker: python main.py` to instruct Coolify to spawn and maintain the Python daemon as a persistent worker process.
+- **Automatic Daemon Loops**: Runs infinitely in the background, querying the targeted Twitter list and updating Convex every 15 minutes, with built-in credentials failure reporting.
