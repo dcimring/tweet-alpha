@@ -3,6 +3,6 @@
 nixPkgs = ["python3", "curl"]
 cmds = ["curl -fsSL https://raw.githubusercontent.com/xdevplatform/xurl/main/install.sh | bash"]
 
-# Ensure both Python and xurl paths are cleanly recognized across the entire container environment
-[env]
-PATH = "/home/nixpacks/.local/bin:/opt/venv/bin:$PATH"
+# Tell Nixpacks to permanently inject these paths into the global container profile
+[phases.install]
+paths = ["/usr/local/bin", "/opt/venv/bin"]
