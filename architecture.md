@@ -147,9 +147,9 @@ The dashboard provides a real-time command terminal to monitor, search, and anal
 
 ## 5. Deployment & Hosting (Coolify)
 
-The tracker daemon is designed for persistent background deployment on a **Coolify** server.
+The tracker daemon is designed for persistent background deployment on a **Coolify** server managed by **PM2** to ensure automatic restarts, memory safety, and live log stream output.
 
-- **Process Manager Integration**: A standard, extensionless `Procfile` is placed in the `backend/` directory of the project.
-- **Build Environment Configuration (`nixpacks.toml`)**: Configures the Nixpacks build environment by forcing `python3` and `curl` to install directly via Nix packages during the setup phase, downloading and installing the `xurl` binary from its installer script, and permanently injecting the required paths (`/usr/local/bin`, `/opt/venv/bin`) into the global container profile via `[phases.install]` so they are cleanly recognized across the container.
-- **Process Target**: Declares `worker: python main.py` to instruct Coolify to spawn and maintain the Python daemon as a persistent worker process from the `backend/` directory.
+- **Build Environment Configuration (`nixpacks.toml`)**: Configures the Nixpacks build environment by forcing `python3`, `nodejs`, and `curl` to install directly via Nix packages during the setup phase, downloading and installing the `xurl` binary, and running `npm install -g pm2` to register PM2 globally inside the build container.
+- **Process Manager Configuration (`ecosystem.config.js`)**: A PM2 configuration file in the `backend/` directory which names the app `tweet-alpha-worker`, configures the interpreter as `python`, sets `PYTHONUNBUFFERED` to `1` so console stdout streams live, and enables automatic daemon restarts with a maximum memory threshold of `1G`.
+- **Process Target (`Procfile`)**: Declares `worker: pm2-runtime start ecosystem.config.js` to instruct Coolify to spawn PM2 in container-compatible foreground runtime mode, ensuring the container remains active while PM2 manages the background Python daemon and handles OS termination signals gracefully.
 - **Automatic Daemon Loops**: Runs infinitely in the background, querying the targeted Twitter list and updating Convex every 15 minutes, with built-in credentials failure reporting.

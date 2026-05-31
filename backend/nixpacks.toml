@@ -1,7 +1,7 @@
-# Force Python and Curl to install directly via Nix packages during the setup phase
+# Force Python, Node.js, and Curl to install directly via Nix packages during the setup phase
 [phases.setup]
-nixPkgs = ["python3", "curl"]
-cmds = ["curl -fsSL https://raw.githubusercontent.com/xdevplatform/xurl/main/install.sh | bash"]
+nixPkgs = ["python3", "curl", "nodejs"]
+cmds = ["curl -fsSL https://raw.githubusercontent.com/xdevplatform/xurl/main/install.sh | bash", "npm install -g pm2"]
 
 # Tell Nixpacks to permanently inject these paths into the global container profile
 [phases.install]
