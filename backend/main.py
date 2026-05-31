@@ -68,6 +68,9 @@ def init_xurl():
         
         # Write to BOTH possible locations to be absolutely sure xurl can find it
         for target_path in [root_config_file, home_config_file]:
+            if target_path.exists() and target_path.stat().st_size > 0:
+                print(f"ℹ️ {target_path} already exists. Skipping overwrite to preserve refreshed session tokens.")
+                continue
             try:
                 target_path.parent.mkdir(parents=True, exist_ok=True)
                 target_path.write_text(raw_yaml.strip())
