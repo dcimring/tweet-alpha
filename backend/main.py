@@ -103,6 +103,18 @@ def init_db():
     """No-op for Convex database since schema is declared in TypeScript."""
     pass
 
+def get_active_model():
+    """Retrieve the active LLM model from Convex, falling back to gemini/gemini-3.1-flash-lite."""
+    try:
+        model = convex_client.query("settings:getSetting", {"key": "active_model"})
+        if model:
+            return model
+    except Exception as e:
+        print(f"Warning: Failed to fetch active model from Convex ({e}).", file=sys.stderr)
+    
+    # Fallback default: gemini/gemini-3.1-flash-lite
+    return os.getenv("ACTIVE_MODEL", "gemini/gemini-3.1-flash-lite")
+
 def save_run_record(tweets_processed, model_used, total_input_tokens, total_output_tokens, total_cost):
     """Record a run execution's metadata in the Convex database."""
     secret_key = os.getenv("BACKEND_SECRET_KEY", "")
@@ -269,10 +281,9 @@ def clean_grok_response(response_text):
             text = text[:-3]
     return text.strip()
 
-def analyze_tweet_sentiment(api_key, text):
+def analyze_tweet_sentiment(api_key, text, model):
     """Send tweet text to LiteLLM for ticker extraction and sentiment classification.
     Returns (analysis_dict, prompt_tokens, completion_tokens, call_cost)."""
-    model = os.getenv("ACTIVE_MODEL", "xai/grok-4-1-fast-non-reasoning")
     
     system_prompt = (
         "You are an expert financial analyst. Analyze the user's tweet and return a JSON object.\n\n"
@@ -390,6 +401,11 @@ def run_tracker(list_id, api_key, webhook_url):
     """Query, filter, analyze, cache, and dispatch new list tweets."""
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print(f"\n--- [{now_str}] Checking X List {list_id} ---")
+    
+    # Query Convex at the start of each round to determine active model
+    model = get_active_model()
+    print(f"Active LLM model fetched from Convex: {model}")
+    
     try:
         raw_tweets = fetch_tweets(list_id)
     except BirdCredentialError as e:
@@ -436,8 +452,6 @@ def run_tracker(list_id, api_key, webhook_url):
             if not is_tweet_processed(parsed["id"]):
                 unprocessed_tweets.append(parsed)
 
-    model = os.getenv("ACTIVE_MODEL", "xai/grok-4-1-fast-non-reasoning")
-
     if not unprocessed_tweets:
         print("No new tweets to process.")
         save_run_record(
@@ -468,7 +482,7 @@ def run_tracker(list_id, api_key, webhook_url):
         
         try:
             # Perform sentiment analysis using LiteLLM
-            analysis, p_tokens, c_tokens, call_cost = analyze_tweet_sentiment(api_key, text)
+            analysis, p_tokens, c_tokens, call_cost = analyze_tweet_sentiment(api_key, text, model)
             total_prompt_tokens += p_tokens
             total_completion_tokens += c_tokens
             total_cost += call_cost

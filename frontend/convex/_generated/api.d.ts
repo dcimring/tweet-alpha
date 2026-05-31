@@ -9,6 +9,7 @@
  */
 
 import type * as runs from "../runs.js";
+import type * as settings from "../settings.js";
 import type * as tweets from "../tweets.js";
 
 import type {
@@ -19,6 +20,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   runs: typeof runs;
+  settings: typeof settings;
   tweets: typeof tweets;
 }>;
 

@@ -109,6 +109,8 @@ a {
   justify-content: space-between;
   align-items: center;
   padding: 1rem 1.5rem;
+  position: relative;
+  z-index: 100;
 }
 
 .brand {
@@ -786,4 +788,65 @@ a {
 @keyframes marquee-scroll-brutalist {
   0% { transform: translateX(0); }
   100% { transform: translateX(-50%); }
+}
+
+/* Brutalist Model Selector Dropdown styling */
+.model-selector {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: #ffffff;
+  border: var(--line) solid var(--ink);
+  border-radius: 0px;
+  padding: 0.375rem 0.875rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--ink);
+  transition: var(--transition-smooth);
+}
+
+.model-selector:hover {
+  background: var(--yellow);
+}
+
+.model-dropdown-list {
+  position: absolute;
+  top: calc(100% + var(--line));
+  right: calc(0px - var(--line));
+  width: 240px;
+  background: #ffffff !important;
+  border: var(--line) solid var(--ink) !important;
+  box-shadow: 4px 4px 0px 0px var(--ink) !important;
+  border-radius: 0px !important;
+  padding: 0.25rem 0px !important;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  transform: none !important;
+}
+
+.model-dropdown-list:hover {
+  transform: none !important;
+}
+
+.model-dropdown-item {
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--ink);
+  transition: var(--transition-smooth);
+  text-align: left;
+}
+
+.model-dropdown-item:hover {
+  background: var(--yellow);
+  color: var(--ink);
+}
+
+.model-dropdown-item.active {
+  background: var(--ink);
+  color: var(--paper);
 }

@@ -53,9 +53,14 @@ graph TD
       - `totalOutputTokens` (number): Total completion tokens consumed during the run.
       - `totalCost` (number): Total execution cost in USD.
       - `timestamp` (string, optional): ISO timestamp of the run.
+  - `settings`: Caches key-value application settings in Convex.
+    - **Schema**:
+      - `key` (string): Unique identifier for the setting (e.g., `"active_model"`).
+      - `value` (string): Value of the setting (e.g., `"gemini/gemini-3.1-flash-lite"`).
+    - **Index**: `by_key` on `key`.
 
 ### C. Sentiment Analysis & Extraction (LiteLLM Wrapper)
-- **Multi-Model Integration**: Invokes a dynamic model via LiteLLM specified by `ACTIVE_MODEL` in the environment configuration (e.g., `xai/grok-4-1-fast-non-reasoning`, `gemini/gemini-2.5-flash`).
+- **Multi-Model Integration**: Dynamically queries Convex at the start of each round to determine the active LLM model to run, falling back to `gemini/gemini-3.1-flash-lite` if not set. The active model can be configured directly from the frontend dashboard in real-time.
 - **Dynamic Cost Tracking**: Uses `genai-prices` first to calculate precise USD execution costs dynamically per run using exact, updated market pricing databases. Falls back to LiteLLM's internal `completion_cost()` and finally `0.0` if the target model is unmapped in the `genai-prices` database.
 - **Prompt Specification**: Commands the selected model to perform financial analysis, extract any stock/crypto symbols, and return a clean, unadorned JSON object containing keys:
   - `"tickers"`: List of upper-case strings (e.g. `["BTC", "SOL"]`)
@@ -130,7 +135,8 @@ The dashboard provides a real-time command terminal to monitor, search, and anal
 
 ### B. Core UI Components (`frontend/src/App.tsx`)
 1. **Live status navigation bar**: Features a green pulsing dot connected to active server synchronization events.
-2. **KPI Metrics Cards**: Real-time counter metrics measuring total tweets screened, alpha signals extracted (bullish or buy), accumulated token execution cost (fixed at 6 decimal places), and scheduler run frequency.
+2. **Model Selection Dropdown**: An interactive brutalist-styled selection dropdown in the navbar that allows real-time active model switching. This selection is instantly persisted to the Convex database's `settings` table and queried by the Python worker at the beginning of its subsequent executions.
+3. **KPI Metrics Cards**: Real-time counter metrics measuring total tweets screened, alpha signals extracted (bullish or buy), accumulated token execution cost (fixed at 6 decimal places), and scheduler run frequency.
 3. **Interactive Alpha Stream Feed**:
    - Scrolling list of processed tweets styled with responsive layouts.
    - Colored visual badges marking sentiment classification (`BUY`, `SELL`, `BULLISH`, `BEARISH`, `NEUTRAL`). High-severity badges like `BUY` / `SELL` pulse continuously.

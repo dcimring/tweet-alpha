@@ -19,4 +19,9 @@ export default defineSchema({
     totalCost: v.number(),
     timestamp: v.optional(v.string()),
   }),
+
+  settings: defineTable({
+    key: v.string(),
+    value: v.string(),
+  }).index("by_key", ["key"]),
 });

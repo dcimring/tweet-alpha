@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "../convex/_generated/api";
 import {
   TrendingUp,
@@ -73,12 +73,47 @@ import {
   CartesianGrid
 } from "recharts";
 
+const SUPPORTED_MODELS = [
+  { value: "gemini/gemini-3.1-flash-lite", label: "Gemini 3.1 Flash Lite" },
+  { value: "gemini/gemini-2.5-flash-lite", label: "Gemini 2.5 Flash Lite" },
+  { value: "xai/grok-4-1-fast-non-reasoning", label: "Grok 4.1 Fast" },
+  { value: "xai/grok-2", label: "Grok 2" },
+  { value: "gpt-4o", label: "GPT-4o" },
+  { value: "gpt-4o-mini", label: "GPT-4o-mini" },
+  { value: "claude-3-7-sonnet-20250219", label: "Claude 3.7 Sonnet" },
+  { value: "claude-3-haiku-20240307", label: "Claude 3 Haiku" },
+  { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash" },
+  { value: "gemini-2.5-pro", label: "Gemini 2.5 Pro" },
+  { value: "deepseek-chat", label: "DeepSeek Chat" },
+  { value: "deepseek-reasoner", label: "DeepSeek Reasoner" }
+];
+
 export default function App() {
   // Real-time Convex Queries
   const recentTweets = useQuery(api.tweets.getRecentTweets, { limit: 1000 });
   const tweetStats = useQuery(api.tweets.getTweetStats);
   const recentRuns = useQuery(api.runs.getRecentRuns, { limit: 50 });
   const runStats = useQuery(api.runs.getRunStats);
+  
+  // Real-time active model setting with fallback
+  const activeModel = useQuery(api.settings.getSetting, { key: "active_model" }) ?? "gemini/gemini-3.1-flash-lite";
+  const updateSetting = useMutation(api.settings.updateSetting);
+
+  // Custom Dropdown Open State and Click-Outside Hook
+  const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsModelDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   // Sound settings state
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -233,6 +268,55 @@ export default function App() {
             <div className="live-pulse" />
             <span>REAL-TIME STREAMING</span>
           </div>
+          
+          <div className="model-selector" ref={dropdownRef}>
+            <button
+              onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
+              className="model-dropdown-trigger"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                background: "transparent",
+                border: "none",
+                fontFamily: "var(--font-mono)",
+                fontSize: "0.75rem",
+                fontWeight: 700,
+                color: "var(--ink)",
+                cursor: "pointer",
+                padding: 0,
+                outline: "none"
+              }}
+            >
+              <Cpu size={14} style={{ marginRight: "4px" }} />
+              <span style={{ marginRight: "6px" }}>MODEL:</span>
+              <span style={{ color: "var(--red)" }}>
+                {SUPPORTED_MODELS.find((m) => m.value === activeModel)?.label || activeModel}
+              </span>
+              <span style={{ marginLeft: "6px", fontSize: "8px" }}>▼</span>
+            </button>
+
+            {isModelDropdownOpen && (
+              <div className="model-dropdown-list glass-panel">
+                {SUPPORTED_MODELS.map((m) => (
+                  <div
+                    key={m.value}
+                    className={`model-dropdown-item ${activeModel === m.value ? "active" : ""}`}
+                    onClick={async () => {
+                      try {
+                        await updateSetting({ key: "active_model", value: m.value });
+                      } catch (err) {
+                        console.error("Failed to update active model:", err);
+                      }
+                      setIsModelDropdownOpen(false);
+                    }}
+                  >
+                    {m.label}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div className="sound-controls">
             <button
               className={`sound-toggle-btn ${soundEnabled ? "enabled" : "disabled"}`}
