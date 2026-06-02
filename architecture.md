@@ -130,8 +130,8 @@ The dashboard provides a real-time command terminal to monitor, search, and anal
 ### A. Tech Stack
 - **Framework**: React 19 + TypeScript + Vite.
 - **Real-Time Data Layer**: Convex React Client using high-performance WebSocket subscriptions (`useQuery`).
-- **Styling**: Modern custom Vanilla CSS with custom HSL design tokens, glassmorphism, responsive grid boundaries, and micro-animations.
-- **Charts**: Recharts library configured with a bespoke theme matching the dark indigo terminal colors.
+- **Styling**: Terminal-style Brutalist custom Vanilla CSS (MetaBase58 foundations) with custom CSS variables, density rules, dark/light themes, tweet card borders, scrolling tracks, and retro animations.
+- **Charts**: Custom lightweight SVG Donut Chart (Sentiment) and Sparkline Path Chart (Execution Costs) styled with the brutalist terminal design to eliminate dependencies and rendering overhead.
 
 ### B. Core UI Components (`frontend/src/App.tsx`)
 1. **Live status navigation bar**: Features a green pulsing dot connected to active server synchronization events.
@@ -144,8 +144,8 @@ The dashboard provides a real-time command terminal to monitor, search, and anal
    - Clickable direct anchors to view the tweet natively on X.
 4. **Trending Tickers Watchboard**: A dynamically computed tag-cloud representing most mentioned stock or crypto tickers sorted by frequency. Clicking on any ticker instantly filters the live Alpha Feed to show only tweets containing that ticker.
 5. **Interactive Analytics Panel**:
-   - **Sentiment Mix**: A custom Recharts inner-donut PieChart rendering the exact proportion of each sentiment signal.
-   - **Execution Costs Trend**: A Recharts LineChart mapping the execution expenses and efficiency across recent scraping runs in chronological sequence.
+   - **Sentiment Mix**: A custom SVG donut chart rendering the exact proportion of each sentiment signal.
+   - **Execution Costs Trend**: A custom SVG line chart mapping the execution expenses and efficiency across recent scraping runs in chronological sequence.
 6. **Background Runs Log**: Real-time monitor of scraper cron jobs tracking execution timestamps, new tweets processed, exact model used, and run costs.
 7. **Real-time Sound Notification Alerts**: Emits a pleasant retro-futuristic double chime sound when a new high-severity signal (`buy` or `sell`) is processed and appended to the data stream. Built using the browser's native Web Audio API (completely self-contained, zero asset load delay). Includes a persistent audio setting toggle (`SOUNDS ON` / `MUTED`) and a manual `TEST` trigger in the navigation header, fully responsive on all screen sizes.
 
