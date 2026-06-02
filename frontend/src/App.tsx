@@ -177,7 +177,13 @@ const Icon = {
 const TOKEN_RE = /(https?:\/\/[^\s]+|\$[A-Za-z]{1,6}\b|@\w+)/g;
 
 function renderContent(text: string) {
-  const parts = String(text).split(TOKEN_RE);
+  const decoded = String(text)
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
+  const parts = decoded.split(TOKEN_RE);
   return parts.map((p, i) => {
     if (!p) return null;
     if (/^https?:\/\//.test(p)) {
