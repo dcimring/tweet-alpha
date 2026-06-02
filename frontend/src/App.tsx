@@ -1689,6 +1689,23 @@ export default function App() {
 
       {/* MARQUEE */}
       <Marquee items={marqueeItems} />
+
+      {/* MOBILE NAV BAR */}
+      <nav className="mobile-nav">
+        {PAGES.map((p) => {
+          const Ic = Icon[p.icon];
+          return (
+            <button
+              key={p.id}
+              className={`navbtn ${page === p.id ? "active" : ""}`}
+              onClick={() => go(p.id)}
+            >
+              <Ic w={18} />
+              <span>{p.label}</span>
+            </button>
+          );
+        })}
+      </nav>
     </div>
   );
 }

@@ -516,6 +516,10 @@ a{color:inherit; text-decoration:none;}
 @keyframes scroll{0%{transform:translateX(0);}100%{transform:translateX(-50%);}}
 
 /* ---------- responsive ---------- */
+.mobile-nav {
+  display: none;
+}
+
 @media (max-width:1040px){
   body{overflow:auto;}
   .app{height:auto;}
@@ -524,6 +528,105 @@ a{color:inherit; text-decoration:none;}
   .main{grid-template-columns:1fr;}
   .rail{border-left:none; border-top:1px solid var(--rule);}
   .tweets{max-height:none;}
+}
+
+@media (max-width:768px){
+  .cmd-clock, .live-chip, .cmd-sub {
+    display: none !important;
+  }
+  .metric {
+    padding: 10px 14px;
+    gap: 4px;
+  }
+  .metric-v {
+    font-size: 20px;
+  }
+  .metric-sub {
+    font-size: 10px;
+  }
+}
+
+@media (max-width:600px){
+  /* Hide desktop header navigation */
+  .cmd-nav {
+    display: none !important;
+  }
+  
+  /* Hide model text prefix in the model button */
+  .cmd-btn .k {
+    display: none;
+  }
+  
+  /* Make filters horizontally scrollable on mobile */
+  .filters {
+    overflow-x: auto;
+    width: 100%;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Hide scrollbar on Firefox */
+  }
+  .filters::-webkit-scrollbar {
+    display: none; /* Hide scrollbar on Chrome/Safari/Webkit */
+  }
+  
+  /* Mobile bottom navigation styles */
+  .mobile-nav {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    background: var(--surface);
+    border-top: 1px solid var(--rule);
+    height: 56px;
+    position: sticky;
+    bottom: 0;
+    z-index: 100;
+    flex: none;
+  }
+  .mobile-nav .navbtn {
+    flex: 1;
+    height: 100%;
+    border-radius: 0;
+    justify-content: center;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 11px;
+    padding: 6px 0;
+  }
+  .mobile-nav .navbtn svg {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+@media (max-width:500px){
+  .hd-stats {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width:480px){
+  .metrics {
+    grid-template-columns: 1fr;
+  }
+  .metric {
+    border-right: none;
+    border-bottom: 1px solid var(--rule-soft);
+  }
+  .metric:last-child {
+    border-bottom: none;
+  }
+}
+
+@media (max-width:400px){
+  .donut-wrap {
+    flex-direction: column;
+    gap: 12px;
+    align-items: center;
+    text-align: center;
+  }
+  .donut-legend {
+    width: 100%;
+  }
 }
 
 @media (prefers-reduced-motion:reduce){

@@ -132,6 +132,12 @@ The dashboard provides a real-time command terminal to monitor, search, and anal
 - **Real-Time Data Layer**: Convex React Client using high-performance WebSocket subscriptions (`useQuery`).
 - **Tab Navigation & Routing**: Single-page hash routing (`#stream` and `#handles`) dynamically tracking locations.
 - **Styling**: Terminal-style Brutalist custom Vanilla CSS (MetaBase58 foundations) with custom CSS variables, density rules, dark/light themes, tweet card borders, scrolling tracks, and retro animations.
+- **Responsive Architecture**: Built-in media query breakdown to deliver an optimized experience on mobile and tablet devices:
+  - **Desktop (>= 1040px)**: Grid layout with side-by-side stream and metrics sidebar.
+  - **Tablet (< 1040px)**: Sidebar panels stack underneath the main content stream.
+  - **Compact Tablet (< 768px)**: Hides secondary info (UTC clock, live chip status, brand subtitle) and scales down metrics text/paddings to prevent clipping.
+  - **Mobile (< 600px)**: Hides the header command navigation and model label prefix. Renders a native-like bottom tab bar (`.mobile-nav`) for thumb-friendly navigation. Makes tweet classification filter tags horizontally scrollable.
+  - **Small Mobile (< 500px / < 480px / < 400px)**: Restructures profile stats grids to 3 columns, stacks metrics to a single-column layout, and vertically aligns donut sentiment mix charts to eliminate horizontal page overflow.
 - **Charts**: Custom lightweight SVG Donut Chart (Sentiment) and Sparkline Path Chart (Execution Costs) styled with the brutalist terminal design to eliminate dependencies and rendering overhead.
 
 ### B. Core UI Components (`frontend/src/App.tsx`)
