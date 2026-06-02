@@ -681,9 +681,25 @@ function StreamPage({
       const hhmmss = r.timestamp
         ? new Date(r.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })
         : "N/A";
+      
+      const modelFull = r.modelUsed || "unknown";
+      let modelShort = modelFull.split("/").pop() || modelFull;
+      if (modelShort.startsWith("gemini-")) {
+        modelShort = modelShort.replace("gemini-", "gemini ");
+      } else if (modelShort.startsWith("grok-")) {
+        modelShort = modelShort.replace("grok-", "grok ");
+      } else if (modelShort.startsWith("claude-")) {
+        modelShort = modelShort.replace("claude-", "claude ");
+      }
+      if (modelShort.length > 24) {
+        modelShort = modelShort.slice(0, 22) + "..";
+      }
+
       return {
         time: hhmmss,
-        middle: `${r.tweetsProcessed} processed`,
+        model: modelShort,
+        modelFull: modelFull,
+        middle: r.tweetsProcessed,
         cost: `$${r.totalCost.toFixed(6)}`,
         active: r.tweetsProcessed > 0
       };
@@ -1003,7 +1019,8 @@ function StreamPage({
                     <div className="run" key={i}>
                       <span className={`run-led ${r.active ? "on" : ""}`} />
                       <span className="run-t">{r.time} UTC</span>
-                      <span className="run-mid">{r.middle}</span>
+                      <span className="run-model" title={r.modelFull}>{r.model}</span>
+                      <span className="run-mid" title={`${r.middle} tweets processed`}>{r.middle}</span>
                       <span className="run-cost">{r.cost}</span>
                     </div>
                   ))
