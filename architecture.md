@@ -158,6 +158,7 @@ The dashboard provides a real-time command terminal to monitor, search, and anal
    - **Cross-Page Handoff**: Clicking any ticker in the author's top tickers list triggers the `researchTicker` callback, navigating back to `#stream` and pre-applying that ticker filter.
 6. **Background Runs Log**: Real-time monitor of scraper cron jobs tracking execution timestamps, new tweets processed, exact model used, and run costs.
 7. **Real-time Sound Notification Alerts**: Emits a retro-futuristic double chime sound when a new high-severity signal (`buy` or `sell`) is processed and appended to the data stream. Built using the browser's native Web Audio API (completely self-contained, zero asset load delay). Includes a persistent audio setting toggle (`SOUNDS ON` / `MUTED`) and a manual `TEST` trigger in the navigation header, fully responsive on all screen sizes.
+8. **Client-Side Pagination**: Feeds on both the Stream (`#stream`) and Handles (`#handles`) pages limit initial visibility to 20 posts at a time to reduce rendering density. A Brutalist-styled "SHOW MORE" button expands the visible list in increments of 20. Crucially, modifying any filter (search queries, active tickers, selected handle, or active signals) automatically resets the pagination back to the first 20 items, pulling dynamically from the fully subscribed local cache.
 
 ---
 

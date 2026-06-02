@@ -633,7 +633,6 @@ a{color:inherit; text-decoration:none;}
   *{animation:none !important;}
 }
 
-/* compact tweet cards inside Live Alpha Stream on desktop */
 @media (min-width: 1041px) {
   .live-alpha-stream .tweets {
     gap: 10px;
@@ -648,5 +647,43 @@ a{color:inherit; text-decoration:none;}
     margin-top: 8px;
     padding-top: 8px;
   }
+}
+
+/* ---------- SHOW MORE BUTTON ---------- */
+.show-more-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0;
+  flex-shrink: 0;
+}
+.show-more-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 38px;
+  width: 100%;
+  padding: 0 20px;
+  background: var(--surface);
+  color: var(--fg-2);
+  border: 1px solid var(--rule);
+  border-radius: var(--r1);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  cursor: pointer;
+  transition: all var(--dur-fast) var(--ease);
+}
+.show-more-btn:hover {
+  color: var(--fg);
+  border-color: var(--accent);
+  background: var(--surface-2);
+}
+.show-more-btn svg {
+  transition: transform var(--dur-fast) var(--ease);
+}
+.show-more-btn:hover svg {
+  transform: translateY(1px);
 }
 

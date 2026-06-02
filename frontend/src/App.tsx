@@ -168,7 +168,8 @@ const Icon = {
       <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
     </I>
   ),
-  list: (p: IconProps) => <I {...p} d={["M8 6h13", "M8 12h13", "M8 18h13", "M3 6h.01", "M3 12h.01", "M3 18h.01"]} />
+  list: (p: IconProps) => <I {...p} d={["M8 6h13", "M8 12h13", "M8 18h13", "M3 6h.01", "M3 12h.01", "M3 18h.01"]} />,
+  chevronDown: (p: IconProps) => <I {...p} d="m6 9 6 6 6-6" />
 };
 
 const TOKEN_RE = /(https?:\/\/[^\s]+|\$[A-Za-z]{1,6}\b|@\w+)/g;
@@ -508,6 +509,12 @@ function StreamPage({
   const [chartTab, setChartTab] = useState("sentiment"); // sentiment | cost
   const [railTab, setRailTab] = useState("analytics"); // analytics | runs
   const [tkQuery, setTkQuery] = useState("");
+  const [visibleCount, setVisibleCount] = useState(20);
+
+  // Reset pagination when any filter changes
+  useEffect(() => {
+    setVisibleCount(20);
+  }, [search, filter, ticker]);
 
   // cross-page research handoff from Handles page
   useEffect(() => {
@@ -808,15 +815,25 @@ function StreamPage({
                 </div>
               </div>
             ) : (
-              tweets.map((tw) => (
-                <TweetCard
-                  key={tw._id}
-                  tw={tw}
-                  activeTicker={ticker}
-                  onTicker={pickTicker}
-                  formatDate={formatDate}
-                />
-              ))
+              <React.Fragment>
+                {tweets.slice(0, visibleCount).map((tw) => (
+                  <TweetCard
+                    key={tw._id}
+                    tw={tw}
+                    activeTicker={ticker}
+                    onTicker={pickTicker}
+                    formatDate={formatDate}
+                  />
+                ))}
+                {tweets.length > visibleCount && (
+                  <div className="show-more-wrap">
+                    <button className="show-more-btn" onClick={() => setVisibleCount((c) => c + 20)}>
+                      SHOW MORE
+                      <Icon.chevronDown w={14} />
+                    </button>
+                  </div>
+                )}
+              </React.Fragment>
             )}
           </div>
         </section>
@@ -974,6 +991,12 @@ function HandlesPage({
   const [sortBy, setSortBy] = useState("posts"); // posts | bull | bear
   const [filter, setFilter] = useState("all"); // all | buy | sell | bullish | bearish
   const [railTab, setRailTab] = useState("mix"); // mix | tickers
+  const [visibleCount, setVisibleCount] = useState(20);
+
+  // Reset pagination when selected author or filter changes
+  useEffect(() => {
+    setVisibleCount(20);
+  }, [selected, filter]);
 
   // dynamically compute author stats map from recentTweets
   const authorStats = useMemo(() => {
@@ -1269,7 +1292,7 @@ function HandlesPage({
                     <div>No {filter} posts from this handle.</div>
                   </div>
                 )}
-                {feed.map((tw) => (
+                {feed.slice(0, visibleCount).map((tw) => (
                   <TweetCard
                     key={tw._id}
                     tw={tw}
@@ -1278,6 +1301,14 @@ function HandlesPage({
                     formatDate={formatDate}
                   />
                 ))}
+                {feed.length > visibleCount && (
+                  <div className="show-more-wrap">
+                    <button className="show-more-btn" onClick={() => setVisibleCount((c) => c + 20)}>
+                      SHOW MORE
+                      <Icon.chevronDown w={14} />
+                    </button>
+                  </div>
+                )}
               </div>
             </React.Fragment>
           ) : (
