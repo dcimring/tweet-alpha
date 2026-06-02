@@ -130,24 +130,28 @@ The dashboard provides a real-time command terminal to monitor, search, and anal
 ### A. Tech Stack
 - **Framework**: React 19 + TypeScript + Vite.
 - **Real-Time Data Layer**: Convex React Client using high-performance WebSocket subscriptions (`useQuery`).
+- **Tab Navigation & Routing**: Single-page hash routing (`#stream` and `#handles`) dynamically tracking locations.
 - **Styling**: Terminal-style Brutalist custom Vanilla CSS (MetaBase58 foundations) with custom CSS variables, density rules, dark/light themes, tweet card borders, scrolling tracks, and retro animations.
 - **Charts**: Custom lightweight SVG Donut Chart (Sentiment) and Sparkline Path Chart (Execution Costs) styled with the brutalist terminal design to eliminate dependencies and rendering overhead.
 
 ### B. Core UI Components (`frontend/src/App.tsx`)
-1. **Live status navigation bar**: Features a green pulsing dot connected to active server synchronization events.
+1. **Live status navigation bar**: Features a green pulsing dot connected to active server synchronization events. Allows smooth switching between the **Stream** and **Handles** views.
 2. **Model Selection Dropdown**: An interactive brutalist-styled selection dropdown in the navbar that allows real-time active model switching. This selection is instantly persisted to the Convex database's `settings` table and queried by the Python worker at the beginning of its subsequent executions.
 3. **KPI Metrics Cards**: Real-time counter metrics measuring total tweets screened, alpha signals extracted (bullish or buy), accumulated token execution cost (fixed at 6 decimal places), and scheduler run frequency.
-3. **Interactive Alpha Stream Feed**:
+4. **Interactive Alpha Stream Page (`#stream`)**:
    - Scrolling list of processed tweets styled with responsive layouts.
    - Colored visual badges marking sentiment classification (`BUY`, `SELL`, `BULLISH`, `BEARISH`, `NEUTRAL`). High-severity badges like `BUY` / `SELL` pulse continuously.
    - Fully searchable by text, ticker, or user handle, and filterable by signal severity level.
    - Clickable direct anchors to view the tweet natively on X.
-4. **Trending Tickers Watchboard**: A dynamically computed tag-cloud representing most mentioned stock or crypto tickers sorted by frequency. Clicking on any ticker instantly filters the live Alpha Feed to show only tweets containing that ticker.
-5. **Interactive Analytics Panel**:
-   - **Sentiment Mix**: A custom SVG donut chart rendering the exact proportion of each sentiment signal.
-   - **Execution Costs Trend**: A custom SVG line chart mapping the execution expenses and efficiency across recent scraping runs in chronological sequence.
+   - **Trending Tickers Watchboard**: A dynamically computed tag-cloud representing most mentioned stock or crypto tickers sorted by frequency. Clicking on any ticker instantly filters the live Alpha Feed to show only tweets containing that ticker.
+   - **Interactive Analytics Panel**: Custom SVG donut chart (Sentiment Mix) and custom SVG line chart (Execution Costs Trend).
+5. **Interactive Handles Directory Page (`#handles`)**:
+   - **Tracked Handles List**: Directory of all Twitter handles active in the database, filterable by query, and sortable by total posts or net sentiment lean. Highlights active buy/sell counts for each author.
+   - **Author Profile Dashboard**: Details author KPIs (posts analyzed, tickers mentioned, net sentiment lean direction), statistical breakdown bars, and local signal filters to query that author's post history.
+   - **Signal Mix & Top Tickers Panels**: Sidebar charts reflecting the selected author's signal distribution and their most frequently mentioned assets.
+   - **Cross-Page Handoff**: Clicking any ticker in the author's top tickers list triggers the `researchTicker` callback, navigating back to `#stream` and pre-applying that ticker filter.
 6. **Background Runs Log**: Real-time monitor of scraper cron jobs tracking execution timestamps, new tweets processed, exact model used, and run costs.
-7. **Real-time Sound Notification Alerts**: Emits a pleasant retro-futuristic double chime sound when a new high-severity signal (`buy` or `sell`) is processed and appended to the data stream. Built using the browser's native Web Audio API (completely self-contained, zero asset load delay). Includes a persistent audio setting toggle (`SOUNDS ON` / `MUTED`) and a manual `TEST` trigger in the navigation header, fully responsive on all screen sizes.
+7. **Real-time Sound Notification Alerts**: Emits a retro-futuristic double chime sound when a new high-severity signal (`buy` or `sell`) is processed and appended to the data stream. Built using the browser's native Web Audio API (completely self-contained, zero asset load delay). Includes a persistent audio setting toggle (`SOUNDS ON` / `MUTED`) and a manual `TEST` trigger in the navigation header, fully responsive on all screen sizes.
 
 ---
 

@@ -11,7 +11,7 @@ function playAlertSound() {
     
     const now = ctx.currentTime;
     
-    // First pleasant tone (Melodic perfect fifth)
+    // First tone (pleasant perfect fifth melodic chime)
     const osc1 = ctx.createOscillator();
     const gain1 = ctx.createGain();
     osc1.type = "sine";
@@ -27,7 +27,7 @@ function playAlertSound() {
     osc1.start(now);
     osc1.stop(now + 0.35);
 
-    // Second tone (slightly delayed resolving octave chime)
+    // Second tone (Resolving octave)
     const osc2 = ctx.createOscillator();
     const gain2 = ctx.createGain();
     osc2.type = "sine";
@@ -161,6 +161,14 @@ const Icon = {
   line: (p: IconProps) => <I {...p} d={["M3 3v16a2 2 0 0 0 2 2h16", "m19 9-5 5-4-4-3 3"]} />,
   zap: (p: IconProps) => <I {...p} d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z" />,
   filter: (p: IconProps) => <I {...p} d="M3 4h18l-7 8v6l-4 2v-8z" />,
+  users: (p: IconProps) => (
+    <I {...p}>
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+    </I>
+  ),
+  list: (p: IconProps) => <I {...p} d={["M8 6h13", "M8 12h13", "M8 18h13", "M3 6h.01", "M3 12h.01", "M3 18h.01"]} />
 };
 
 const TOKEN_RE = /(https?:\/\/[^\s]+|\$[A-Za-z]{1,6}\b|@\w+)/g;
@@ -476,145 +484,83 @@ function Marquee({ items }: MarqueeProps) {
   );
 }
 
-export default function App() {
-  // Real-time Convex Queries
-  const recentTweets = useQuery(api.tweets.getRecentTweets, { limit: 1000 });
-  const tweetStats = useQuery(api.tweets.getTweetStats);
-  const recentRuns = useQuery(api.runs.getRecentRuns, { limit: 50 });
-  const runStats = useQuery(api.runs.getRunStats);
-  
-  // Real-time active model setting with fallback
-  const activeModel = useQuery(api.settings.getSetting, { key: "active_model" }) ?? "gemini/gemini-3.1-flash-lite";
-  const updateSetting = useMutation(api.settings.updateSetting);
+interface StreamPageProps {
+  recentTweets: ConvexTweet[] | undefined;
+  tweetStats: any;
+  recentRuns: ConvexRun[] | undefined;
+  runStats: any;
+  research: { ticker: string; nonce: number } | null;
+  onResearchTicker: (ticker: string) => void;
+  formatDate: (dateStr?: string) => string;
+}
 
-  // States
-  const [theme, setTheme] = useState(() => localStorage.getItem("at-theme") || "dark");
+function StreamPage({
+  recentTweets,
+  tweetStats,
+  recentRuns,
+  runStats,
+  research,
+  formatDate
+}: StreamPageProps) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all"); // all | buy | sell | bullish | bearish
   const [ticker, setTicker] = useState<string | null>(null);
   const [chartTab, setChartTab] = useState("sentiment"); // sentiment | cost
   const [railTab, setRailTab] = useState("analytics"); // analytics | runs
-  const [modelOpen, setModelOpen] = useState(false);
-  const [sound, setSound] = useState(true);
   const [tkQuery, setTkQuery] = useState("");
-  const [clock, setClock] = useState("");
 
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  // Sound settings tracking
-  const seenTweetIds = useRef<Set<string>>(new Set());
-  const isInitialLoad = useRef(true);
-
-  // Apply theme to html root
+  // cross-page research handoff from Handles page
   useEffect(() => {
-    document.documentElement.setAttribute("data-theme", theme);
-    document.documentElement.setAttribute("data-glow", "off");
-    localStorage.setItem("at-theme", theme);
-  }, [theme]);
-
-  // UTC clock ticking
-  useEffect(() => {
-    const tick = () => {
-      const d = new Date();
-      const hh = String(d.getUTCHours()).padStart(2, "0");
-      const mm = String(d.getUTCMinutes()).padStart(2, "0");
-      const ss = String(d.getUTCSeconds()).padStart(2, "0");
-      setClock(`${hh}:${mm}:${ss}`);
-    };
-    tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
-  }, []);
-
-  // Monitor for new buy/sell alerts to play retrograde sound
-  useEffect(() => {
-    if (!recentTweets) return;
-
-    if (isInitialLoad.current) {
-      recentTweets.forEach((t) => {
-        seenTweetIds.current.add(t._id);
-      });
-      isInitialLoad.current = false;
-      return;
+    if (research && research.ticker) {
+      setTicker(research.ticker);
     }
+  }, [research]);
 
-    let hasNewBuySell = false;
-    recentTweets.forEach((t) => {
-      if (!seenTweetIds.current.has(t._id)) {
-        seenTweetIds.current.add(t._id);
-        const s = t.signal.toLowerCase();
-        if (s === "buy" || s === "sell") {
-          hasNewBuySell = true;
-        }
-      }
-    });
-
-    if (hasNewBuySell && sound) {
-      playAlertSound();
-    }
-  }, [recentTweets, sound]);
-
-  // Dropdown Click-Outside handler
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setModelOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
-
-  // Close model menu on dropdown blur
-  useEffect(() => {
-    if (!modelOpen) return;
-    const h = () => setModelOpen(false);
-    window.addEventListener("click", h);
-    return () => window.removeEventListener("click", h);
-  }, [modelOpen]);
-
-  // Date formatting utility
-  const formatDate = (dateStr?: string) => {
-    if (!dateStr) return "N/A";
-    try {
-      const d = new Date(dateStr);
-      if (isNaN(d.getTime())) return dateStr;
-      return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) + " " + d.toLocaleDateString([], { month: "short", day: "numeric" });
-    } catch {
-      return dateStr;
-    }
-  };
-
-  // Filtered Tweets computation
-  const filteredTweets = useMemo(() => {
+  // Filtered tweets
+  const tweets = useMemo(() => {
     if (!recentTweets) return [];
     const q = search.trim().toLowerCase();
     return recentTweets.filter((tw) => {
-      // Ticker filter matches
       if (ticker) {
         const twTickers = tw.tickers
           ? tw.tickers.split(",").map(t => t.trim().toUpperCase()).filter(Boolean)
           : [];
         if (!twTickers.includes(ticker)) return false;
       }
-      
-      // Signal filter matches
       if (filter !== "all") {
         if (tw.signal.toLowerCase() !== filter.toLowerCase()) return false;
       }
-      
-      // Search matches handle, text, or tickers
       if (q) {
         const twTickersStr = tw.tickers ? tw.tickers.toLowerCase() : "";
         const hay = `${tw.text} ${tw.username} ${twTickersStr}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
-      
       return true;
     });
   }, [recentTweets, search, filter, ticker]);
+
+  // Donut counts
+  const donutData = useMemo(() => {
+    const counts = { buy: 0, bullish: 0, neutral: 0, bearish: 0, sell: 0 };
+    const src = ticker && recentTweets
+      ? recentTweets.filter((tw) => {
+          const twTickers = tw.tickers
+            ? tw.tickers.split(",").map(t => t.trim().toUpperCase()).filter(Boolean)
+            : [];
+          return twTickers.includes(ticker);
+        })
+      : (recentTweets || []);
+
+    src.forEach((tw) => {
+      const sig = tw.signal.toLowerCase() as keyof typeof counts;
+      if (sig in counts) {
+        counts[sig]++;
+      }
+    });
+
+    const total = Object.values(counts).reduce((a, b) => a + b, 0);
+    return { counts, total };
+  }, [recentTweets, ticker]);
 
   // Ticker stats map dynamically compiled from recentTweets
   const tickerStats = useMemo(() => {
@@ -639,7 +585,6 @@ export default function App() {
     return m;
   }, [recentTweets]);
 
-  // Compute bull/bear stats for selected ticker
   const tkSel = ticker ? (tickerStats[ticker] || { total: 0, buy: 0, bullish: 0, neutral: 0, bearish: 0, sell: 0 }) : null;
   const bb = tkSel ? {
     bull: (tkSel.buy || 0) + (tkSel.bullish || 0),
@@ -667,29 +612,6 @@ export default function App() {
     };
   }, [recentTweets, ticker]);
 
-  // Donut chart distribution (sentiment mix)
-  const donutData = useMemo(() => {
-    const counts = { buy: 0, bullish: 0, neutral: 0, bearish: 0, sell: 0 };
-    const src = ticker && recentTweets
-      ? recentTweets.filter((tw) => {
-          const twTickers = tw.tickers
-            ? tw.tickers.split(",").map(t => t.trim().toUpperCase()).filter(Boolean)
-            : [];
-          return twTickers.includes(ticker);
-        })
-      : (recentTweets || []);
-
-    src.forEach((tw) => {
-      const sig = tw.signal.toLowerCase() as keyof typeof counts;
-      if (sig in counts) {
-        counts[sig]++;
-      }
-    });
-
-    const total = Object.values(counts).reduce((a, b) => a + b, 0);
-    return { counts, total };
-  }, [recentTweets, ticker]);
-
   // Sidebar trending tickers sorted by count
   const sortedTickers = useMemo(() => {
     if (!tweetStats?.tickerCounts) return [];
@@ -706,21 +628,12 @@ export default function App() {
       .filter((w) => !q || w.name.includes(q));
   }, [sortedTickers, tkQuery]);
 
-  // Marquee strip items
-  const marqueeItems = useMemo(() => {
-    if (!sortedTickers || sortedTickers.length === 0) {
-      return ["BINANCE 22", "OKX 38", "ETHENA 71", "CURVE 31", "COINBASE 14", "AAVE 17", "LIDO 12"];
-    }
-    return sortedTickers.slice(0, 10).map((t) => `${t.name} ${t.count}`);
-  }, [sortedTickers]);
-
   const pickTicker = (tk: string) => {
     setTicker((prev) => (prev === tk ? null : tk));
   };
 
   const isLoading = recentTweets === undefined || tweetStats === undefined || recentRuns === undefined || runStats === undefined;
 
-  // Background run items
   const runItems = useMemo(() => {
     if (!recentRuns) return [];
     return recentRuns.map((r) => {
@@ -737,80 +650,7 @@ export default function App() {
   }, [recentRuns]);
 
   return (
-    <div className="app">
-      {/* COMMAND BAR */}
-      <header className="cmdbar">
-        <div className="cmd-brand">
-          <div className="cmd-mark">
-            <span className="dot" />
-          </div>
-          <div>
-            <div className="cmd-title">
-              ALPHA <b>TERMINAL</b>
-            </div>
-            <div className="cmd-sub">signal intelligence</div>
-          </div>
-        </div>
-
-        <div className="live-chip">
-          <span className="live-led" />
-          LIVE · STREAMING
-        </div>
-        <div className="cmd-clock">
-          <b>{clock}</b> UTC
-        </div>
-
-        <div className="cmd-spacer" />
-
-        <div className="model-wrap" ref={dropdownRef} onClick={(e) => e.stopPropagation()}>
-          <button className="cmd-btn" onClick={() => setModelOpen((o) => !o)}>
-            <Icon.cpu w={14} />
-            <span className="k">MODEL</span>
-            <span className="v">
-              {SUPPORTED_MODELS.find((m) => m.value === activeModel)?.label || activeModel}
-            </span>
-            <span style={{ fontSize: 8, color: "var(--fg-3)" }}>▾</span>
-          </button>
-          {modelOpen && (
-            <div className="model-menu">
-              {SUPPORTED_MODELS.map((m) => (
-                <div
-                  key={m.value}
-                  className={`model-opt ${m.value === activeModel ? "active" : ""}`}
-                  onClick={async () => {
-                    try {
-                      await updateSetting({ key: "active_model", value: m.value });
-                    } catch (err) {
-                      console.error("Failed to update active model:", err);
-                    }
-                    setModelOpen(false);
-                  }}
-                >
-                  {m.label}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <button
-          className="cmd-btn"
-          onClick={() => setSound((s) => !s)}
-          title={sound ? "Mute alerts" : "Enable alerts"}
-        >
-          {sound ? <Icon.vol w={14} /> : <Icon.mute w={14} />}
-          <span className="k">{sound ? "SOUND ON" : "MUTED"}</span>
-        </button>
-
-        <button
-          className="cmd-btn"
-          onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
-          title="Toggle theme"
-        >
-          {theme === "dark" ? <Icon.sun w={14} /> : <Icon.moon w={14} />}
-        </button>
-      </header>
-
+    <React.Fragment>
       {/* METRICS */}
       <div className="metrics">
         <div className="metric">
@@ -861,7 +701,6 @@ export default function App() {
         </div>
       </div>
 
-      {/* MAIN */}
       <div className="main">
         {/* STREAM */}
         <section className="panel stream">
@@ -871,7 +710,7 @@ export default function App() {
               Live Alpha Stream
             </h2>
             <span className="count">
-              {filteredTweets.length} / {isLoading ? 0 : recentTweets.length}
+              {tweets.length} / {isLoading ? 0 : recentTweets.length}
             </span>
           </div>
 
@@ -959,7 +798,7 @@ export default function App() {
                 <Icon.activity w={28} style={{ stroke: "var(--accent)" }} />
                 <div>Establishing secure connection to Convex data stream...</div>
               </div>
-            ) : filteredTweets.length === 0 ? (
+            ) : tweets.length === 0 ? (
               <div className="empty">
                 <Icon.search w={28} />
                 <div>
@@ -969,7 +808,7 @@ export default function App() {
                 </div>
               </div>
             ) : (
-              filteredTweets.map((tw) => (
+              tweets.map((tw) => (
                 <TweetCard
                   key={tw._id}
                   tw={tw}
@@ -1115,6 +954,738 @@ export default function App() {
           </div>
         </aside>
       </div>
+    </React.Fragment>
+  );
+}
+
+interface HandlesPageProps {
+  recentTweets: ConvexTweet[] | undefined;
+  onResearchTicker: (ticker: string) => void;
+  formatDate: (dateStr?: string) => string;
+}
+
+function HandlesPage({
+  recentTweets,
+  onResearchTicker,
+  formatDate
+}: HandlesPageProps) {
+  const [selected, setSelected] = useState<string | null>(null);
+  const [hQuery, setHQuery] = useState("");
+  const [sortBy, setSortBy] = useState("posts"); // posts | bull | bear
+  const [filter, setFilter] = useState("all"); // all | buy | sell | bullish | bearish
+  const [railTab, setRailTab] = useState("mix"); // mix | tickers
+
+  // dynamically compute author stats map from recentTweets
+  const authorStats = useMemo(() => {
+    const m: Record<
+      string,
+      {
+        name: string;
+        total: number;
+        buy: number;
+        bullish: number;
+        neutral: number;
+        bearish: number;
+        sell: number;
+        tickers: Record<string, number>;
+        posts: ConvexTweet[];
+      }
+    > = {};
+
+    if (!recentTweets) return m;
+
+    recentTweets.forEach((t) => {
+      const name = `@${t.username}`;
+      if (!m[name]) {
+        m[name] = {
+          name,
+          total: 0,
+          buy: 0,
+          bullish: 0,
+          neutral: 0,
+          bearish: 0,
+          sell: 0,
+          tickers: {},
+          posts: [],
+        };
+      }
+      const s = m[name];
+      s.total++;
+      const sig = t.signal.toLowerCase();
+      if (sig === "buy") s.buy++;
+      else if (sig === "bullish") s.bullish++;
+      else if (sig === "neutral") s.neutral++;
+      else if (sig === "bearish") s.bearish++;
+      else if (sig === "sell") s.sell++;
+
+      const tickersList = t.tickers ? t.tickers.split(",").map(tk => tk.trim().toUpperCase()).filter(Boolean) : [];
+      tickersList.forEach((tk) => {
+        s.tickers[tk] = (s.tickers[tk] || 0) + 1;
+      });
+      s.posts.push(t);
+    });
+
+    return m;
+  }, [recentTweets]);
+
+  const authorList = useMemo(() => {
+    return Object.values(authorStats);
+  }, [authorStats]);
+
+  // Set default selection to most active handle once loaded
+  useEffect(() => {
+    if (authorList.length > 0 && !selected) {
+      const defaultSel = authorList.slice().sort((a, b) => b.total - a.total)[0]?.name || null;
+      setSelected(defaultSel);
+    }
+  }, [authorList, selected]);
+
+  const kpis = useMemo(() => {
+    const total = recentTweets ? recentTweets.length : 0;
+    const buy = recentTweets ? recentTweets.filter(t => t.signal.toLowerCase() === "buy").length : 0;
+    return {
+      handles: authorList.length,
+      posts: total,
+      buy,
+      avg: Math.round(total / (authorList.length || 1))
+    };
+  }, [recentTweets, authorList]);
+
+  // filter + sort directory
+  const directory = useMemo(() => {
+    const q = hQuery.trim().toLowerCase().replace("@", "");
+    const arr = authorList.filter(a => !q || a.name.toLowerCase().includes(q));
+    const score = (a: typeof authorList[0]) => {
+      const b = {
+        bull: (a.buy || 0) + (a.bullish || 0),
+        bear: (a.sell || 0) + (a.bearish || 0),
+        neu: (a.neutral || 0)
+      };
+      if (sortBy === "bull") return b.bull / (a.total || 1);
+      if (sortBy === "bear") return b.bear / (a.total || 1);
+      return a.total;
+    };
+    return arr.slice().sort((x, y) => score(y) - score(x));
+  }, [authorList, hQuery, sortBy]);
+
+  const sel = selected ? authorStats[selected] : null;
+  const selBB = sel ? {
+    bull: (sel.buy || 0) + (sel.bullish || 0),
+    bear: (sel.sell || 0) + (sel.bearish || 0),
+    neu: (sel.neutral || 0)
+  } : null;
+
+  const topTickers = useMemo(() => {
+    if (!sel) return [];
+    return Object.entries(sel.tickers).sort((a, b) => b[1] - a[1]).map(([tk, n]) => ({ tk, n }));
+  }, [sel]);
+
+  const feed = useMemo(() => {
+    if (!sel) return [];
+    return filter === "all" ? sel.posts : sel.posts.filter(p => p.signal.toLowerCase() === filter.toLowerCase());
+  }, [sel, filter]);
+
+  const filterCounts = useMemo(() => {
+    if (!sel) return { all: 0, buy: 0, sell: 0, bullish: 0, bearish: 0 };
+    return {
+      all: sel.total,
+      buy: sel.buy || 0,
+      sell: sel.sell || 0,
+      bullish: sel.bullish || 0,
+      bearish: sel.bearish || 0
+    };
+  }, [sel]);
+
+  const donutCounts = {
+    buy: sel?.buy || 0,
+    bullish: sel?.bullish || 0,
+    neutral: sel?.neutral || 0,
+    bearish: sel?.bearish || 0,
+    sell: sel?.sell || 0
+  };
+
+  // Compile full list of ticker stats for top tickers sentiment ratios
+  const tickerStats = useMemo(() => {
+    const m: Record<string, { total: number; buy: number; bullish: number; neutral: number; bearish: number; sell: number }> = {};
+    if (!recentTweets) return m;
+    recentTweets.forEach((t) => {
+      const tickersList = t.tickers ? t.tickers.split(",").map(tk => tk.trim().toUpperCase()).filter(Boolean) : [];
+      tickersList.forEach((tk) => {
+        if (!m[tk]) {
+          m[tk] = { total: 0, buy: 0, bullish: 0, neutral: 0, bearish: 0, sell: 0 };
+        }
+        const s = m[tk];
+        s.total++;
+        const sig = t.signal.toLowerCase();
+        if (sig === "buy") s.buy++;
+        else if (sig === "bullish") s.bullish++;
+        else if (sig === "neutral") s.neutral++;
+        else if (sig === "bearish") s.bearish++;
+        else if (sig === "sell") s.sell++;
+      });
+    });
+    return m;
+  }, [recentTweets]);
+
+  const SIG_ORDER = ["buy", "bullish", "neutral", "bearish", "sell"] as const;
+  const isLoading = recentTweets === undefined;
+
+  return (
+    <React.Fragment>
+      {/* METRICS */}
+      <div className="metrics">
+        <div className="metric">
+          <div className="metric-k">
+            <Icon.users w={13} />
+            <span className="caps">Tracked Handles</span>
+          </div>
+          <div className="metric-v">{isLoading ? "..." : kpis.handles}</div>
+          <div className="metric-sub">authors on the watch list</div>
+        </div>
+        <div className="metric">
+          <div className="metric-k">
+            <Icon.activity w={13} />
+            <span className="caps">Posts Analyzed</span>
+          </div>
+          <div className="metric-v">{isLoading ? "..." : kpis.posts.toLocaleString()}</div>
+          <div className="metric-sub">classified across all handles</div>
+        </div>
+        <div className="metric accent">
+          <div className="metric-k">
+            <Icon.bell w={13} />
+            <span className="caps">Buy Signals</span>
+          </div>
+          <div className="metric-v">{isLoading ? "..." : kpis.buy}</div>
+          <div className="metric-sub">explicit buy calls logged</div>
+        </div>
+        <div className="metric">
+          <div className="metric-k">
+            <Icon.trend w={13} />
+            <span className="caps">Avg / Handle</span>
+          </div>
+          <div className="metric-v">
+            {isLoading ? "..." : kpis.avg}
+            <span className="u">posts</span>
+          </div>
+          <div className="metric-sub">mean posts per author</div>
+        </div>
+      </div>
+
+      <div className="main">
+        {/* PROFILE + FEED */}
+        <section className="panel stream">
+          {isLoading ? (
+            <div className="empty" style={{ height: "100%" }}>
+              <Icon.activity w={28} style={{ stroke: "var(--accent)" }} />
+              <div>Loading handles directory...</div>
+            </div>
+          ) : sel && selBB ? (
+            <React.Fragment>
+              <div className="hd-profile">
+                <div className="hd-top">
+                  <div className="hd-avatar">{sel.name.replace("@", "").slice(0, 2).toUpperCase()}</div>
+                  <div className="hd-id">
+                    <a
+                      className="hd-name"
+                      href={`https://x.com/${sel.name.replace("@", "")}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {sel.name}
+                    </a>
+                    <span className="hd-meta">
+                      {sel.total} posts analyzed · {topTickers.length} tickers mentioned
+                    </span>
+                  </div>
+                  <div className="hd-lean">
+                    <span
+                      className="hd-lean-v"
+                      style={{ color: selBB.bull >= selBB.bear ? "var(--bull)" : "var(--bear)" }}
+                    >
+                      {selBB.bull >= selBB.bear ? "BULLISH" : "BEARISH"}
+                    </span>
+                    <span className="hd-lean-k">net lean</span>
+                  </div>
+                </div>
+
+                <div className="hd-stats">
+                  {SIG_ORDER.map((k) => (
+                    <div className={`hd-stat s-${k}`} key={k}>
+                      <span className="hd-stat-v">{sel ? sel[k] : 0}</span>
+                      <span className="hd-stat-k">{k}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="senti-bar">
+                  {selBB.bull > 0 && <i style={{ width: `${(selBB.bull / sel.total) * 100}%`, background: "var(--bull)" }} />}
+                  {selBB.neu > 0 && <i style={{ width: `${(selBB.neu / sel.total) * 100}%`, background: "var(--neutral)" }} />}
+                  {selBB.bear > 0 && <i style={{ width: `${(selBB.bear / sel.total) * 100}%`, background: "var(--bear)" }} />}
+                </div>
+              </div>
+
+              <div className="toolbar">
+                <span className="caps" style={{ marginRight: "auto" }}>
+                  Posts by {sel.name}
+                </span>
+                <div className="filters">
+                  <button
+                    className={`fbtn ${filter === "all" ? "active" : ""}`}
+                    onClick={() => setFilter("all")}
+                  >
+                    All <span className="pill">{filterCounts.all}</span>
+                  </button>
+                  <button
+                    className={`fbtn buy ${filter === "buy" ? "active" : ""}`}
+                    onClick={() => setFilter("buy")}
+                  >
+                    <Icon.bell w={13} /> Buy <span className="pill">{filterCounts.buy}</span>
+                  </button>
+                  <button
+                    className={`fbtn sell ${filter === "sell" ? "active" : ""}`}
+                    onClick={() => setFilter("sell")}
+                  >
+                    <Icon.bell w={13} /> Sell <span className="pill">{filterCounts.sell}</span>
+                  </button>
+                  <button
+                    className={`fbtn bull ${filter === "bullish" ? "active" : ""}`}
+                    onClick={() => setFilter("bullish")}
+                  >
+                    Bullish <span className="pill">{filterCounts.bullish}</span>
+                  </button>
+                  <button
+                    className={`fbtn bear ${filter === "bearish" ? "active" : ""}`}
+                    onClick={() => setFilter("bearish")}
+                  >
+                    Bearish <span className="pill">{filterCounts.bearish}</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="tweets">
+                {feed.length === 0 && (
+                  <div className="empty">
+                    <Icon.search w={28} />
+                    <div>No {filter} posts from this handle.</div>
+                  </div>
+                )}
+                {feed.map((tw) => (
+                  <TweetCard
+                    key={tw._id}
+                    tw={tw}
+                    activeTicker={null}
+                    onTicker={onResearchTicker}
+                    formatDate={formatDate}
+                  />
+                ))}
+              </div>
+            </React.Fragment>
+          ) : (
+            <div className="empty" style={{ height: "100%" }}>
+              <Icon.users w={28} />
+              <div>Select a handle from the directory.</div>
+            </div>
+          )}
+        </section>
+
+        {/* RAIL: directory + analytics */}
+        <aside className="rail">
+          <div className="rail-section grow">
+            <div className="panel-head">
+              <h2>
+                <Icon.users w={14} />
+                Handles
+              </h2>
+              <span className="count">{directory.length}</span>
+            </div>
+            <div className="tk-search">
+              <div className="search">
+                <Icon.search w={14} />
+                <input
+                  value={hQuery}
+                  onChange={(e) => setHQuery(e.target.value)}
+                  placeholder="find handle…"
+                />
+              </div>
+              <div className="seg sort-seg">
+                <button
+                  className={`segbtn ${sortBy === "posts" ? "active" : ""}`}
+                  onClick={() => setSortBy("posts")}
+                >
+                  Posts
+                </button>
+                <button
+                  className={`segbtn ${sortBy === "bull" ? "active" : ""}`}
+                  onClick={() => setSortBy("bull")}
+                >
+                  Bull
+                </button>
+                <button
+                  className={`segbtn ${sortBy === "bear" ? "active" : ""}`}
+                  onClick={() => setSortBy("bear")}
+                >
+                  Bear
+                </button>
+              </div>
+            </div>
+            <div className="tk-list">
+              {directory.map((a) => {
+                const b = {
+                  bull: (a.buy || 0) + (a.bullish || 0),
+                  bear: (a.sell || 0) + (a.bearish || 0),
+                  neu: (a.neutral || 0)
+                };
+                const tot = a.total || 1;
+                const alerts = (a.buy || 0) + (a.sell || 0);
+                return (
+                  <div
+                    key={a.name}
+                    className={`tk-row hd-row ${selected === a.name ? "on" : ""}`}
+                    onClick={() => setSelected(a.name)}
+                  >
+                    <span className="tkr-name" title={a.name}>
+                      {a.name}
+                    </span>
+                    <span className="tkr-bar">
+                      {b.bull > 0 && <i style={{ width: `${(b.bull / tot) * 100}%`, background: "var(--bull)" }} />}
+                      {b.neu > 0 && <i style={{ width: `${(b.neu / tot) * 100}%`, background: "var(--neutral)" }} />}
+                      {b.bear > 0 && <i style={{ width: `${(b.bear / tot) * 100}%`, background: "var(--bear)" }} />}
+                    </span>
+                    {alerts > 0 && (
+                      <span className="hd-alerts" title={`${alerts} buy/sell alerts`}>
+                        {alerts}
+                        <Icon.bell w={9} />
+                      </span>
+                    )}
+                    <span className="tkr-count">{a.total}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="rail-section panel-tabs">
+            <div className="panel-head">
+              <div className="seg">
+                <button
+                  className={`segbtn ${railTab === "mix" ? "active" : ""}`}
+                  onClick={() => setRailTab("mix")}
+                >
+                  <Icon.pie w={13} />
+                  Signal Mix
+                </button>
+                <button
+                  className={`segbtn ${railTab === "tickers" ? "active" : ""}`}
+                  onClick={() => setRailTab("tickers")}
+                >
+                  <Icon.trend w={13} />
+                  Top Tickers
+                </button>
+              </div>
+            </div>
+            {railTab === "mix" ? (
+              <div className="chart-body">
+                {sel ? (
+                  <Donut counts={donutCounts} total={sel.total} />
+                ) : (
+                  <div className="empty">No handle selected</div>
+                )}
+              </div>
+            ) : (
+              <div className="tk-list" style={{ maxHeight: "none" }}>
+                {topTickers.length === 0 && <div className="empty">No tickers</div>}
+                {topTickers.map(({ tk, n }) => {
+                  const st = tickerStats[tk] || { total: n, buy: 0, bullish: 0, neutral: 0, bearish: 0, sell: 0 };
+                  const b = {
+                    bull: (st.buy || 0) + (st.bullish || 0),
+                    bear: (st.sell || 0) + (st.bearish || 0),
+                    neu: (st.neutral || 0)
+                  };
+                  const tot = st.total || n || 1;
+                  return (
+                    <div
+                      key={tk}
+                      className="tk-row"
+                      onClick={() => onResearchTicker && onResearchTicker(tk)}
+                      title="Research on Stream"
+                    >
+                      <span className="tkr-name">${tk}</span>
+                      <span className="tkr-bar">
+                        {b.bull > 0 && <i style={{ width: `${(b.bull / tot) * 100}%`, background: "var(--bull)" }} />}
+                        {b.neu > 0 && <i style={{ width: `${(b.neu / tot) * 100}%`, background: "var(--neutral)" }} />}
+                        {b.bear > 0 && <i style={{ width: `${(b.bear / tot) * 100}%`, background: "var(--bear)" }} />}
+                      </span>
+                      <span className="tkr-count">{n}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </aside>
+      </div>
+    </React.Fragment>
+  );
+}
+
+const PAGES = [
+  { id: "stream", label: "Stream", icon: "activity" as keyof typeof Icon },
+  { id: "handles", label: "Handles", icon: "users" as keyof typeof Icon },
+];
+
+function readHash() {
+  const h = (location.hash || "").replace("#", "");
+  return PAGES.some((p) => p.id === h) ? h : "stream";
+}
+
+export default function App() {
+  // Real-time Convex Queries
+  const recentTweets = useQuery(api.tweets.getRecentTweets, { limit: 1000 });
+  const tweetStats = useQuery(api.tweets.getTweetStats);
+  const recentRuns = useQuery(api.runs.getRecentRuns, { limit: 50 });
+  const runStats = useQuery(api.runs.getRunStats);
+  
+  // Real-time active model setting with fallback
+  const activeModel = useQuery(api.settings.getSetting, { key: "active_model" }) ?? "gemini/gemini-3.1-flash-lite";
+  const updateSetting = useMutation(api.settings.updateSetting);
+
+  // States
+  const [theme, setTheme] = useState(() => localStorage.getItem("at-theme") || "dark");
+  const [page, setPage] = useState(readHash());
+  const [research, setResearch] = useState<{ ticker: string; nonce: number } | null>(null);
+
+  const [modelOpen, setModelOpen] = useState(false);
+  const [sound, setSound] = useState(true);
+  const [clock, setClock] = useState("");
+
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Sound settings tracking
+  const seenTweetIds = useRef<Set<string>>(new Set());
+  const isInitialLoad = useRef(true);
+
+  // Apply theme to html root
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    document.documentElement.setAttribute("data-glow", "off");
+    localStorage.setItem("at-theme", theme);
+  }, [theme]);
+
+  // Hash-based routing change listener
+  useEffect(() => {
+    const onHash = () => setPage(readHash());
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
+
+  const go = (id: string) => {
+    location.hash = id;
+    setPage(id);
+  };
+
+  // UTC clock ticking
+  useEffect(() => {
+    const tick = () => {
+      const d = new Date();
+      const p = (n: number) => String(n).padStart(2, "0");
+      setClock(`${p(d.getUTCHours())}:${p(d.getUTCMinutes())}:${p(d.getUTCSeconds())}`);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Monitor for new buy/sell alerts to play retrograde sound
+  useEffect(() => {
+    if (!recentTweets) return;
+
+    if (isInitialLoad.current) {
+      recentTweets.forEach((t) => {
+        seenTweetIds.current.add(t._id);
+      });
+      isInitialLoad.current = false;
+      return;
+    }
+
+    let hasNewBuySell = false;
+    recentTweets.forEach((t) => {
+      if (!seenTweetIds.current.has(t._id)) {
+        seenTweetIds.current.add(t._id);
+        const s = t.signal.toLowerCase();
+        if (s === "buy" || s === "sell") {
+          hasNewBuySell = true;
+        }
+      }
+    });
+
+    if (hasNewBuySell && sound) {
+      playAlertSound();
+    }
+  }, [recentTweets, sound]);
+
+  // Dropdown Click-Outside handler
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setModelOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  // Close model menu on dropdown blur
+  useEffect(() => {
+    if (!modelOpen) return;
+    const h = () => setModelOpen(false);
+    window.addEventListener("click", h);
+    return () => window.removeEventListener("click", h);
+  }, [modelOpen]);
+
+  // Cross-page research: click ticker -> switch to Stream page and apply filter
+  const researchTicker = (tk: string) => {
+    setResearch({ ticker: tk, nonce: Date.now() });
+    go("stream");
+  };
+
+  // Date formatting utility
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return "N/A";
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr;
+      return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) + " " + d.toLocaleDateString([], { month: "short", day: "numeric" });
+    } catch {
+      return dateStr;
+    }
+  };
+
+  // Sidebar trending tickers sorted by count (for bottom Marquee strip)
+  const sortedTickers = useMemo(() => {
+    if (!tweetStats?.tickerCounts) return [];
+    return Object.entries(tweetStats.tickerCounts)
+      .map(([name, count]) => ({ name: name.toUpperCase(), count: Number(count) }))
+      .sort((a, b) => b.count - a.count);
+  }, [tweetStats]);
+
+  // Marquee strip items
+  const marqueeItems = useMemo(() => {
+    if (!sortedTickers || sortedTickers.length === 0) {
+      return ["BINANCE 22", "OKX 38", "ETHENA 71", "CURVE 31", "COINBASE 14", "AAVE 17", "LIDO 12"];
+    }
+    return sortedTickers.slice(0, 10).map((t) => `${t.name} ${t.count}`);
+  }, [sortedTickers]);
+
+  return (
+    <div className="app">
+      {/* COMMAND BAR */}
+      <header className="cmdbar">
+        <div className="cmd-brand">
+          <div className="cmd-mark">
+            <span className="dot" />
+          </div>
+          <div>
+            <div className="cmd-title">
+              ALPHA <b>TERMINAL</b>
+            </div>
+            <div className="cmd-sub">signal intelligence</div>
+          </div>
+        </div>
+
+        <nav className="cmd-nav">
+          {PAGES.map((p) => {
+            const Ic = Icon[p.icon];
+            return (
+              <button
+                key={p.id}
+                className={`navbtn ${page === p.id ? "active" : ""}`}
+                onClick={() => go(p.id)}
+              >
+                <Ic w={14} />
+                {p.label}
+              </button>
+            );
+          })}
+        </nav>
+
+        <div className="cmd-spacer" />
+
+        <div className="live-chip">
+          <span className="live-led" />
+          LIVE
+        </div>
+        <div className="cmd-clock">
+          <b>{clock}</b> UTC
+        </div>
+
+        <div className="model-wrap" ref={dropdownRef} onClick={(e) => e.stopPropagation()}>
+          <button className="cmd-btn" onClick={() => setModelOpen((o) => !o)}>
+            <Icon.cpu w={14} />
+            <span className="k">MODEL</span>
+            <span className="v">
+              {SUPPORTED_MODELS.find((m) => m.value === activeModel)?.label || activeModel}
+            </span>
+            <span style={{ fontSize: 8, color: "var(--fg-3)" }}>▾</span>
+          </button>
+          {modelOpen && (
+            <div className="model-menu">
+              {SUPPORTED_MODELS.map((m) => (
+                <div
+                  key={m.value}
+                  className={`model-opt ${m.value === activeModel ? "active" : ""}`}
+                  onClick={async () => {
+                    try {
+                      await updateSetting({ key: "active_model", value: m.value });
+                    } catch (err) {
+                      console.error("Failed to update active model:", err);
+                    }
+                    setModelOpen(false);
+                  }}
+                >
+                  {m.label}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <button
+          className="cmd-btn"
+          onClick={() => setSound((s) => !s)}
+          title={sound ? "Mute alerts" : "Enable alerts"}
+        >
+          {sound ? <Icon.vol w={14} /> : <Icon.mute w={14} />}
+        </button>
+
+        <button
+          className="cmd-btn"
+          onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
+          title="Toggle theme"
+        >
+          {theme === "dark" ? <Icon.sun w={14} /> : <Icon.moon w={14} />}
+        </button>
+      </header>
+
+      {/* PAGE CONTENT */}
+      {page === "handles" ? (
+        <HandlesPage
+          recentTweets={recentTweets}
+          onResearchTicker={researchTicker}
+          formatDate={formatDate}
+        />
+      ) : (
+        <StreamPage
+          recentTweets={recentTweets}
+          tweetStats={tweetStats}
+          recentRuns={recentRuns}
+          runStats={runStats}
+          research={research}
+          onResearchTicker={researchTicker}
+          formatDate={formatDate}
+        />
+      )}
 
       {/* MARQUEE */}
       <Marquee items={marqueeItems} />

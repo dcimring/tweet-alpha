@@ -135,6 +135,22 @@ a{color:inherit; text-decoration:none;}
 
 .cmd-spacer{flex:1;}
 
+/* nav */
+.cmd-nav{display:flex; gap:4px; padding-left:18px; border-left:1px solid var(--rule); height:100%; align-items:center;}
+.navbtn{
+  display:inline-flex; align-items:center; gap:7px;
+  height:34px; padding:0 13px;
+  background:transparent; color:var(--fg-2);
+  border:1px solid transparent; border-radius:var(--r1);
+  font-family:var(--font-sans); font-size:13px; font-weight:600; letter-spacing:.01em;
+  cursor:pointer; transition:all var(--dur-fast) var(--ease);
+}
+.navbtn svg{width:14px; height:14px; opacity:.8;}
+.navbtn:hover{color:var(--fg); background:var(--surface-2);}
+.navbtn.active{color:var(--accent-ink); background:var(--accent); border-color:var(--accent);}
+[data-theme="light"] .navbtn.active{color:#0e0f10; background:var(--lime); border-color:var(--lime);}
+.navbtn.active svg{opacity:1;}
+
 .cmd-clock{font-family:var(--font-mono); font-size:12px; color:var(--fg-2); letter-spacing:.02em;}
 .cmd-clock b{color:var(--fg); font-weight:500;}
 
@@ -279,6 +295,55 @@ a{color:inherit; text-decoration:none;}
 .senti-legend .sw{width:8px; height:8px; border-radius:2px;}
 
 .tweets{flex:1; min-height:0; overflow-y:auto; padding:14px 18px; display:flex; flex-direction:column; gap:var(--gap);}
+
+/* ---------- HANDLE PROFILE ---------- */
+.hd-profile{
+  flex:none; padding:18px; border-bottom:1px solid var(--rule);
+  background:linear-gradient(180deg,var(--surface-2),var(--surface));
+  display:flex; flex-direction:column; gap:15px;
+}
+.hd-top{display:flex; align-items:center; gap:14px;}
+.hd-avatar{
+  flex:none; width:48px; height:48px; display:grid; place-items:center;
+  background:var(--accent); color:var(--accent-ink);
+  font-family:var(--font-mono); font-weight:700; font-size:17px; letter-spacing:.02em;
+  border-radius:var(--r2);
+}
+[data-theme="light"] .hd-avatar{background:var(--lime); color:#0e0f10;}
+.hd-id{display:flex; flex-direction:column; gap:3px; min-width:0;}
+.hd-name{font-family:var(--font-mono); font-size:20px; font-weight:700; letter-spacing:-.01em; color:var(--fg); transition:color var(--dur-fast);}
+.hd-name:hover{color:var(--accent);}
+[data-theme="light"] .hd-name:hover{color:var(--lime-deep);}
+.hd-meta{font-family:var(--font-mono); font-size:11.5px; color:var(--fg-3);}
+.hd-lean{margin-left:auto; display:flex; flex-direction:column; align-items:flex-end; gap:2px; text-align:right;}
+.hd-lean-v{font-family:var(--font-mono); font-size:14px; font-weight:700; letter-spacing:.08em;}
+.hd-lean-k{font-family:var(--font-mono); font-size:9.5px; text-transform:uppercase; letter-spacing:.14em; color:var(--fg-3);}
+
+.hd-stats{display:grid; grid-template-columns:repeat(5,1fr); gap:8px;}
+.hd-stat{
+  display:flex; flex-direction:column; align-items:center; gap:3px;
+  padding:9px 6px; border:1px solid var(--rule); border-radius:var(--r1); background:var(--card);
+  border-top:2px solid var(--neutral-line);
+}
+.hd-stat-v{font-family:var(--font-mono); font-size:18px; font-weight:700; color:var(--fg); line-height:1;}
+.hd-stat-k{font-family:var(--font-mono); font-size:9px; text-transform:uppercase; letter-spacing:.1em; color:var(--fg-3);}
+.hd-stat.s-buy{border-top-color:var(--buy);}      .hd-stat.s-buy .hd-stat-v{color:var(--buy);}
+.hd-stat.s-bullish{border-top-color:var(--bull);} .hd-stat.s-bullish .hd-stat-v{color:var(--bull);}
+.hd-stat.s-bearish{border-top-color:var(--bear);} .hd-stat.s-bearish .hd-stat-v{color:var(--bear);}
+.hd-stat.s-sell{border-top-color:var(--sell);}    .hd-stat.s-sell .hd-stat-v{color:var(--sell);}
+
+/* directory rows: handle variant */
+.tk-row.hd-row{grid-template-columns:minmax(0,1fr) auto auto auto;}
+.tk-row.hd-row .tkr-name{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.hd-alerts{
+  display:inline-flex; align-items:center; gap:3px;
+  font-family:var(--font-mono); font-size:10px; font-weight:700; color:var(--buy);
+  background:var(--buy-soft); border:1px solid var(--buy-line); border-radius:99px; padding:1px 6px;
+}
+.tk-row.hd-row.on .hd-alerts{background:rgba(0,0,0,.18); color:var(--accent-ink); border-color:transparent;}
+.hd-alerts svg{width:9px; height:9px;}
+.sort-seg{margin-top:9px; width:100%;}
+.sort-seg .segbtn{flex:1; justify-content:center;}
 
 /* ---------- TWEET CARD ---------- */
 .tw{
