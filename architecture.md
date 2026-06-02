@@ -149,6 +149,7 @@ The dashboard provides a real-time command terminal to monitor, search, and anal
    - Colored visual badges marking sentiment classification (`BUY`, `SELL`, `BULLISH`, `BEARISH`, `NEUTRAL`). High-severity badges like `BUY` / `SELL` pulse continuously.
    - Fully searchable by text, ticker, or user handle, and filterable by signal severity level.
    - Clickable direct anchors to view the tweet natively on X.
+   - **Fullscreen Mode toggle**: A dedicated fullscreen button/icon in the panel header allows the user to expand the Live Alpha Stream panel to fill the entire viewport. An event listener for `Escape` or clicking the toggle icon again collapses the stream panel back to its normal grid position. When fullscreen is active, scrolling on the parent window is disabled, and contents are centered in a 1000px column on wide viewports to maintain optimal readability.
    - **Trending Tickers Watchboard**: A dynamically computed tag-cloud representing most mentioned stock or crypto tickers sorted by frequency. Clicking on any ticker instantly filters the live Alpha Feed to show only tweets containing that ticker.
    - **Interactive Analytics Panel**: Custom SVG donut chart (Sentiment Mix) and custom SVG line chart (Execution Costs Trend).
 5. **Interactive Handles Directory Page (`#handles`)**:

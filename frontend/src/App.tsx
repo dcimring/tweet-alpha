@@ -169,7 +169,9 @@ const Icon = {
     </I>
   ),
   list: (p: IconProps) => <I {...p} d={["M8 6h13", "M8 12h13", "M8 18h13", "M3 6h.01", "M3 12h.01", "M3 18h.01"]} />,
-  chevronDown: (p: IconProps) => <I {...p} d="m6 9 6 6 6-6" />
+  chevronDown: (p: IconProps) => <I {...p} d="m6 9 6 6 6-6" />,
+  maximize: (p: IconProps) => <I {...p} d={["M15 3h6v6", "M9 21H3v-6", "M21 3l-7 7", "M3 21l7-7"]} />,
+  minimize: (p: IconProps) => <I {...p} d={["M4 14h6v6", "M20 10h-6V4", "M14 10l7-7", "M10 14l-7 7"]} />
 };
 
 const TOKEN_RE = /(https?:\/\/[^\s]+|\$[A-Za-z]{1,6}\b|@\w+)/g;
@@ -510,6 +512,31 @@ function StreamPage({
   const [railTab, setRailTab] = useState("analytics"); // analytics | runs
   const [tkQuery, setTkQuery] = useState("");
   const [visibleCount, setVisibleCount] = useState(20);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Esc key keydown listener to cancel fullscreen
+  useEffect(() => {
+    if (!isFullscreen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsFullscreen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isFullscreen]);
+
+  // Lock body scroll when in fullscreen mode
+  useEffect(() => {
+    if (isFullscreen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isFullscreen]);
 
   // Reset pagination when any filter changes
   useEffect(() => {
@@ -710,7 +737,7 @@ function StreamPage({
 
       <div className="main">
         {/* STREAM */}
-        <section className="panel stream live-alpha-stream">
+        <section className={`panel stream live-alpha-stream ${isFullscreen ? "fullscreen" : ""}`}>
           <div className="panel-head">
             <h2>
               <span className="dot" />
@@ -719,6 +746,14 @@ function StreamPage({
             <span className="count">
               {tweets.length} / {isLoading ? 0 : recentTweets.length}
             </span>
+            <span className="spacer" />
+            <button
+              className="fullscreen-btn"
+              onClick={() => setIsFullscreen(!isFullscreen)}
+              title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+            >
+              {isFullscreen ? <Icon.minimize w={14} /> : <Icon.maximize w={14} />}
+            </button>
           </div>
 
           <div className="toolbar">
