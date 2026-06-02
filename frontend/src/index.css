@@ -121,7 +121,7 @@ a{color:inherit; text-decoration:none;}
   padding:0 20px; height:56px;
   background:var(--surface);
   border-bottom:1px solid var(--rule);
-  position:relative; z-index:50;
+  position:sticky; top:0; z-index:100;
 }
 .cmd-brand{display:flex; align-items:center; gap:11px; padding-right:18px; border-right:1px solid var(--rule);}
 .cmd-mark{
@@ -586,7 +586,7 @@ a{color:inherit; text-decoration:none;}
 
 /* ---------- MOBILE HAMBURGER DROPDOWN ---------- */
 .mobile-dropdown {
-  position: absolute;
+  position: fixed;
   top: 56px;
   left: 0;
   right: 0;
