@@ -1450,7 +1450,7 @@ export default function App() {
   const updateSetting = useMutation(api.settings.updateSetting);
 
   // States
-  const [theme, setTheme] = useState(() => localStorage.getItem("at-theme") || "dark");
+  const [theme, setTheme] = useState(() => localStorage.getItem("at-theme") || "light");
   const [page, setPage] = useState(readHash());
   const [research, setResearch] = useState<{ ticker: string; nonce: number } | null>(null);
 
