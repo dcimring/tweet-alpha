@@ -703,7 +703,7 @@ function StreamPage({
 
       <div className="main">
         {/* STREAM */}
-        <section className="panel stream">
+        <section className="panel stream live-alpha-stream">
           <div className="panel-head">
             <h2>
               <span className="dot" />

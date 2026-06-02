@@ -632,3 +632,21 @@ a{color:inherit; text-decoration:none;}
 @media (prefers-reduced-motion:reduce){
   *{animation:none !important;}
 }
+
+/* compact tweet cards inside Live Alpha Stream on desktop */
+@media (min-width: 1041px) {
+  .live-alpha-stream .tweets {
+    gap: 10px;
+  }
+  .live-alpha-stream .tw {
+    padding: 10px 12px 10px 16px;
+  }
+  .live-alpha-stream .tw-head {
+    margin-bottom: 6px;
+  }
+  .live-alpha-stream .tw-foot {
+    margin-top: 8px;
+    padding-top: 8px;
+  }
+}
+
