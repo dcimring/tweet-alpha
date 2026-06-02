@@ -136,7 +136,7 @@ The dashboard provides a real-time command terminal to monitor, search, and anal
   - **Desktop (>= 1040px)**: Grid layout with side-by-side stream and metrics sidebar.
   - **Tablet (< 1040px)**: Sidebar panels stack underneath the main content stream.
   - **Compact Tablet (< 768px)**: Hides secondary info (UTC clock, live chip status, brand subtitle) and scales down metrics text/paddings to prevent clipping.
-  - **Mobile (< 600px)**: Hides the header command navigation and model label prefix. Renders a native-like bottom tab bar (`.mobile-nav`) for thumb-friendly navigation. Makes tweet classification filter tags horizontally scrollable.
+  - **Mobile (< 600px)**: Hides desktop-only command bar buttons (model wrap, sound/theme buttons, clock, status chip) to prevent horizontal layout overflow. Renders a mobile hamburger button in the top-right header that toggles a brutalist-styled dropdown menu containing page navigation links, a simplified active model selector, and sound/theme toggle actions. Makes tweet classification filter tags horizontally scrollable.
   - **Small Mobile (< 500px / < 480px / < 400px)**: Restructures profile stats grids to 3 columns, stacks metrics to a single-column layout, and vertically aligns donut sentiment mix charts to eliminate horizontal page overflow.
 - **Charts**: Custom lightweight SVG Donut Chart (Sentiment) and Sparkline Path Chart (Execution Costs) styled with the brutalist terminal design to eliminate dependencies and rendering overhead.
 

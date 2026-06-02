@@ -171,7 +171,8 @@ const Icon = {
   list: (p: IconProps) => <I {...p} d={["M8 6h13", "M8 12h13", "M8 18h13", "M3 6h.01", "M3 12h.01", "M3 18h.01"]} />,
   chevronDown: (p: IconProps) => <I {...p} d="m6 9 6 6 6-6" />,
   maximize: (p: IconProps) => <I {...p} d={["M15 3h6v6", "M9 21H3v-6", "M21 3l-7 7", "M3 21l7-7"]} />,
-  minimize: (p: IconProps) => <I {...p} d={["M4 14h6v6", "M20 10h-6V4", "M14 10l7-7", "M10 14l-7 7"]} />
+  minimize: (p: IconProps) => <I {...p} d={["M4 14h6v6", "M20 10h-6V4", "M14 10l7-7", "M10 14l-7 7"]} />,
+  menu: (p: IconProps) => <I {...p} d={["M4 6h16", "M4 12h16", "M4 18h16"]} />
 };
 
 const TOKEN_RE = /(https?:\/\/[^\s]+|\$[A-Za-z]{1,6}\b|@\w+)/g;
@@ -1529,8 +1530,10 @@ export default function App() {
   const [modelOpen, setModelOpen] = useState(false);
   const [sound, setSound] = useState(true);
   const [clock, setClock] = useState("");
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
 
   // Sound settings tracking
   const seenTweetIds = useRef<Set<string>>(new Set());
@@ -1600,6 +1603,23 @@ export default function App() {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setModelOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  // Close hamburger menu on click outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        mobileMenuRef.current && 
+        !mobileMenuRef.current.contains(event.target as Node) &&
+        !(event.target as Element).closest(".mobile-menu-btn")
+      ) {
+        setMenuOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -1738,7 +1758,90 @@ export default function App() {
         >
           {theme === "dark" ? <Icon.sun w={14} /> : <Icon.moon w={14} />}
         </button>
+
+        {/* MOBILE MENU TOGGLE */}
+        <button
+          className="cmd-btn mobile-menu-btn"
+          onClick={() => setMenuOpen((o) => !o)}
+          title="Toggle Menu"
+        >
+          {menuOpen ? <Icon.x w={14} /> : <Icon.menu w={14} />}
+        </button>
       </header>
+
+      {/* MOBILE DROPDOWN MENU */}
+      {menuOpen && (
+        <div className="mobile-dropdown" ref={mobileMenuRef}>
+          <div className="mobile-dropdown-nav">
+            {PAGES.map((p) => {
+              const Ic = Icon[p.icon];
+              return (
+                <button
+                  key={p.id}
+                  className={`mobile-dropdown-btn ${page === p.id ? "active" : ""}`}
+                  onClick={() => {
+                    go(p.id);
+                    setMenuOpen(false);
+                  }}
+                >
+                  <Ic w={16} />
+                  <span>{p.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="mobile-dropdown-divider" />
+
+          {/* Model Selector inside mobile dropdown */}
+          <div className="mobile-dropdown-section">
+            <span className="caps">Active Model</span>
+            <div className="mobile-model-select-wrapper">
+              <select
+                value={activeModel}
+                onChange={async (e) => {
+                  try {
+                    await updateSetting({ key: "active_model", value: e.target.value });
+                  } catch (err) {
+                    console.error("Failed to update active model:", err);
+                  }
+                }}
+                className="mobile-select"
+              >
+                {SUPPORTED_MODELS.map((m) => (
+                  <option key={m.value} value={m.value}>
+                    {m.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="mobile-dropdown-divider" />
+
+          <div className="mobile-dropdown-row">
+            <button
+              className="mobile-dropdown-action"
+              onClick={() => {
+                setSound((s) => !s);
+              }}
+            >
+              {sound ? <Icon.vol w={16} /> : <Icon.mute w={16} />}
+              <span>Sound: {sound ? "ON" : "MUTED"}</span>
+            </button>
+
+            <button
+              className="mobile-dropdown-action"
+              onClick={() => {
+                setTheme((t) => (t === "dark" ? "light" : "dark"));
+              }}
+            >
+              {theme === "dark" ? <Icon.sun w={16} /> : <Icon.moon w={16} />}
+              <span>Theme: {theme === "dark" ? "DARK" : "LIGHT"}</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* PAGE CONTENT */}
       {page === "handles" ? (
@@ -1762,22 +1865,6 @@ export default function App() {
       {/* MARQUEE */}
       <Marquee items={marqueeItems} />
 
-      {/* MOBILE NAV BAR */}
-      <nav className="mobile-nav">
-        {PAGES.map((p) => {
-          const Ic = Icon[p.icon];
-          return (
-            <button
-              key={p.id}
-              className={`navbtn ${page === p.id ? "active" : ""}`}
-              onClick={() => go(p.id)}
-            >
-              <Ic w={18} />
-              <span>{p.label}</span>
-            </button>
-          );
-        })}
-      </nav>
     </div>
   );
 }
