@@ -30,6 +30,7 @@ graph TD
 - **Session Auth**: For local development, authentication is managed via local X/Twitter authorization (PKCE/OAuth) securely stored in the system configuration. For containerized production deployments (e.g., Coolify), the application automatically initializes `xurl` credentials on script boot via the `init_xurl()` function. This function reads credentials from the `XURL_CONFIG_DATA` environment variable and writes them to `/root/.xurl` inside the container. To prevent overwriting dynamically refreshed tokens (OAuth2 token rotation) on container restarts, `init_xurl()` checks if the config file already exists and is non-empty; if so, it skips writing, allowing credentials persisted via a Coolify volume mount to survive restarts seamlessly.
 - **Robust JSON Parsing**: Decodes the standard X API v2 payload. Maps each tweet's `author_id` to its corresponding `username` handle within the `includes.users` metadata block, rendering a unified array of normalized tweet structures.
 - **Credential Failure Detection**: Scans subprocess exit codes and searches stderr for credential-related signatures (e.g. `401`, `unauthorized`, `expired`). If detected, raises `BirdCredentialError` (retained for backward compatibility) to dispatch an alert embed to the Discord webhook.
+- **Credits Depletion Detection**: Scans subprocess stdout and stderr for `"CreditsDepleted"` or `"does not have any credits"`. If detected, raises `BirdCreditsDepletedError` to dispatch a dedicated system alert embed to the Discord webhook.
 
 ### B. Database Layer (Convex)
 - **Service**: Hosted Convex Backend (real-time BaaS platform)
@@ -83,6 +84,7 @@ graph TD
   - **Red (`0xFF0000`)**: For `sell` signals.
 - Includes fields detailing the poster, tickers, tweet content, and a direct clickable URL back to the tweet on X.
 - **Credential Failure Alerts**: If the wrapper detects a credentials error, it dispatches an orange embed alert (`0xFF9900`) detailing the specific failure logs to the configured Discord Webhook to prompt credential renewal.
+- **Credits Depletion Alerts**: If the wrapper detects a credits depletion error, it dispatches a red embed alert (`0xFF3333`) detailing the specific failure logs to the configured Discord Webhook to prompt account balance check or billing update.
 
 ### F. Model Cost Viewer Utility (`backend/model_costs.py`)
 - **Purpose**: A standalone command-line tool to inspect and compare token pricing (input and output costs) across diverse LLMs supported by LiteLLM.
@@ -104,7 +106,7 @@ graph TD
 2. **Fetch Phase**:
    - Executes the `xurl` v2 list tweets API endpoint.
    - Decodes stdout from JSON and constructs a normalized list of tweet objects with usernames mapped from expansions.
-   - Scans output for credentials issues; if a credentials error is found, raises `BirdCredentialError`, sends a system alert embed to the Discord webhook, and gracefully aborts the current run.
+   - Scans output for credentials and credits issues; if a credentials error is found, raises `BirdCredentialError`. If a credits depletion error is found, raises `BirdCreditsDepletedError`. In either case, sends a system alert embed to the Discord webhook and gracefully aborts the current run.
 3. **Filter Phase**:
    - Queries the Convex backend database in a single batch operation for all tweet IDs using the `tweets:checkProcessedTweets` query.
    - Falls back to querying individual tweet IDs via `tweets:isTweetProcessed` in case of unexpected remote schema discrepancies or query errors.

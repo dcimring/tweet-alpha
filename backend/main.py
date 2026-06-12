@@ -99,6 +99,10 @@ class BirdCredentialError(Exception):
     """Exception raised when xurl CLI fails due to missing or invalid credentials."""
     pass
 
+class BirdCreditsDepletedError(Exception):
+    """Exception raised when xurl CLI fails because X API credits are depleted."""
+    pass
+
 def init_db():
     """No-op for Convex database since schema is declared in TypeScript."""
     pass
@@ -217,8 +221,11 @@ def fetch_tweets(list_id):
         print(f"STDOUT:\n{result.stdout}")
         print(f"STDERR:\n{result.stderr}")
         
-        # Check if the error is due to credentials
+        # Check if the error is due to credentials or depleted credits
         error_msg = (result.stderr or "") + "\n" + (result.stdout or "")
+        if "creditsdepleted" in error_msg.lower() or "does not have any credits" in error_msg.lower():
+            raise BirdCreditsDepletedError(f"xurl API credits depleted: {result.stdout.strip() if result.stdout else 'no credits remaining'}")
+            
         if any(sig in error_msg.lower() for sig in ["401", "unauthorized", "invalid token", "expired", "credentials", "auth"]):
             raise BirdCredentialError(f"xurl credential error detected: {result.stderr.strip() if result.stderr else 'missing or invalid credentials'}")
             
@@ -397,6 +404,27 @@ def send_discord_credential_error_alert(webhook_url, error_message):
     except Exception as e:
         print(f"Error sending Discord credential error alert: {e}", file=sys.stderr)
 
+def send_discord_credits_depleted_alert(webhook_url, error_message):
+    """Send an alert to Discord notifying that X API credits are depleted."""
+    app_name = os.getenv("XURL_APP_NAME", "your_xurl_app_name_here")
+    embed = {
+        "title": "❌ X API CREDITS DEPLETED",
+        "description": f"The `xurl` CLI tool (app: `{app_name}`) has run out of X API credits.",
+        "color": 0xFF3333, # Red for error/credits depleted
+        "fields": [
+            {"name": "Error Details", "value": f"```json\n{error_message[:1000]}\n```", "inline": False},
+            {"name": "Action Required", "value": "Please check your X developer account or subscription/billing settings to top up credits.", "inline": False}
+        ],
+        "footer": {"text": "Tweet Alpha Tracker — System Alert"}
+    }
+    payload = {"embeds": [embed]}
+    try:
+        r = requests.post(webhook_url, json=payload, timeout=10)
+        r.raise_for_status()
+        print("Discord credits depleted alert sent successfully!")
+    except Exception as e:
+        print(f"Error sending Discord credits depleted alert: {e}", file=sys.stderr)
+
 def run_tracker(list_id, api_key, webhook_url):
     """Query, filter, analyze, cache, and dispatch new list tweets."""
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -412,6 +440,13 @@ def run_tracker(list_id, api_key, webhook_url):
         print(f"Failed to fetch tweets due to credentials: {e}", file=sys.stderr)
         if webhook_url:
             send_discord_credential_error_alert(webhook_url, str(e))
+        else:
+            print("Warning: DISCORD_WEBHOOK_URL is not configured, skipping Discord alert.", file=sys.stderr)
+        return
+    except BirdCreditsDepletedError as e:
+        print(f"Failed to fetch tweets due to depleted credits: {e}", file=sys.stderr)
+        if webhook_url:
+            send_discord_credits_depleted_alert(webhook_url, str(e))
         else:
             print("Warning: DISCORD_WEBHOOK_URL is not configured, skipping Discord alert.", file=sys.stderr)
         return
