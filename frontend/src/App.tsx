@@ -1523,6 +1523,9 @@ const PAGES = [
   { id: "handles", label: "Handles", icon: "users" as keyof typeof Icon },
 ];
 
+const AUTH_STORAGE_KEY = "_at_sys_state_";
+const AUTH_SUCCESS_VALUE = "auth_session_active_7749";
+
 function readHash() {
   const h = (location.hash || "").replace("#", "");
   return PAGES.some((p) => p.id === h) ? h : "stream";
@@ -1543,6 +1546,28 @@ export default function App() {
   const [theme, setTheme] = useState(() => localStorage.getItem("at-theme") || "light");
   const [page, setPage] = useState(readHash());
   const [research, setResearch] = useState<{ ticker: string; nonce: number } | null>(null);
+
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return sessionStorage.getItem(AUTH_STORAGE_KEY) === AUTH_SUCCESS_VALUE;
+  });
+  const [password, setPassword] = useState("");
+  const [loginError, setLoginError] = useState("");
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    const correctPassword = import.meta.env.VITE_SITE_PASSWORD;
+    if (!correctPassword) {
+      setLoginError("Access key configuration missing on server.");
+      return;
+    }
+    if (password === correctPassword) {
+      sessionStorage.setItem(AUTH_STORAGE_KEY, AUTH_SUCCESS_VALUE);
+      setIsAuthenticated(true);
+      setLoginError("");
+    } else {
+      setLoginError("INVALID ACCESS KEY");
+    }
+  };
 
   const [modelOpen, setModelOpen] = useState(false);
   const [sound, setSound] = useState(true);
@@ -1689,7 +1714,8 @@ export default function App() {
 
   return (
     <div className="app">
-      {/* COMMAND BAR */}
+      <div className={`blur-wrapper ${!isAuthenticated ? "is-blurred" : ""}`}>
+        {/* COMMAND BAR */}
       <header className="cmdbar">
         <div className="cmd-brand">
           <div className="cmd-mark">
@@ -1881,7 +1907,41 @@ export default function App() {
 
       {/* MARQUEE */}
       <Marquee items={marqueeItems} />
+      </div>
 
+      {!isAuthenticated && (
+        <div className="login-overlay">
+          <div className="login-box">
+            <header className="login-header">
+              <div className="login-title">
+                ALPHA <b>TERMINAL</b>
+              </div>
+              <div className="login-subtitle">
+                Access Restricted
+              </div>
+            </header>
+            <form onSubmit={handleLogin} className="login-form">
+              <div className="login-input-group">
+                <label htmlFor="access-key">Enter Access Key</label>
+                <input
+                  id="access-key"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="login-input"
+                  placeholder="••••••••••••"
+                  autoFocus
+                  required
+                />
+              </div>
+              {loginError && <div className="login-error">{loginError}</div>}
+              <button type="submit" className="login-btn">
+                Authenticate
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
