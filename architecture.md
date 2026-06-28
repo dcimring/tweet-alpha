@@ -132,7 +132,7 @@ The dashboard provides a real-time command terminal to monitor, search, and anal
 ### A. Tech Stack
 - **Framework**: React 19 + TypeScript + Vite.
 - **Real-Time Data Layer**: Convex React Client using high-performance WebSocket subscriptions (`useQuery`).
-- **Tab Navigation & Routing**: Single-page hash routing (`#stream` and `#handles`) dynamically tracking locations.
+- **Tab Navigation & Routing**: Single-page hash routing (`#stream`, `#handles`, and `#tickers`) dynamically tracking locations.
 - **Styling**: Terminal-style Brutalist custom Vanilla CSS (MetaBase58 foundations) with custom CSS variables, density rules, dark/light themes, tweet card borders, scrolling tracks, and retro animations.
 - **Responsive Architecture**: Built-in media query breakdown to deliver an optimized experience on mobile and tablet devices:
   - **Desktop (>= 1040px)**: Grid layout with side-by-side stream and metrics sidebar.
@@ -159,10 +159,18 @@ The dashboard provides a real-time command terminal to monitor, search, and anal
    - **Author Profile Dashboard**: Details author KPIs (posts analyzed, tickers mentioned, net sentiment lean direction), statistical breakdown bars, and local signal filters to query that author's post history.
    - **Signal Mix & Top Tickers Panels**: Sidebar charts reflecting the selected author's signal distribution and their most frequently mentioned assets.
    - **Cross-Page Handoff**: Clicking any ticker in the author's top tickers list triggers the `researchTicker` callback, navigating back to `#stream` and pre-applying that ticker filter.
-6. **Background Runs Log**: Real-time monitor of scraper cron jobs tracking execution timestamps, new tweets processed, exact model used, and run costs.
-7. **Real-time Sound Notification Alerts**: Emits a retro-futuristic double chime sound when a new high-severity signal (`buy` or `sell`) is processed and appended to the data stream. Built using the browser's native Web Audio API (completely self-contained, zero asset load delay). Includes a persistent audio setting toggle (`SOUNDS ON` / `MUTED`) and a manual `TEST` trigger in the navigation header, fully responsive on all screen sizes.
-8. **Client-Side Pagination**: Feeds on both the Stream (`#stream`) and Handles (`#handles`) pages limit initial visibility to 20 posts at a time to reduce rendering density. A Brutalist-styled "SHOW MORE" button expands the visible list in increments of 20. Crucially, modifying any filter (search queries, active tickers, selected handle, or active signals) automatically resets the pagination back to the first 20 items, pulling dynamically from the fully subscribed local cache.
-9. **Access Control Login Overlay**: Restricts dashboard visibility to authenticated users. When the application is launched, a fullscreen brutalist modal prompt demands an access key, checked against a hardcoded environment variable (`VITE_SITE_PASSWORD`). The application container behind the modal is slightly blurred (`filter: blur(8px)`) with pointer interactions disabled. To deter simple manual browser storage overrides, the login session state is stored under an obfuscated sessionStorage variable (`_at_sys_state_`) using a custom key value.
+6. **Interactive Tickers Page (`#tickers`)**:
+    - **Sortable Ticker List**: All unique tickers mentioned across the full tweet database, ranked by total mentions (default), most bullish, or most bearish sort.
+    - **Stacked Sentiment Bar**: Each ticker row renders a proportional horizontal bar split into bull (buy+bullish), neutral, and bear (bearish+sell) segments, giving an at-a-glance visual of crowd sentiment.
+    - **Bull/Bear Score**: A computed value from `-100` to `+100` calculated as `(bull - bear) / total × 100`. Positive scores are highlighted in green; negative in red.
+    - **Signal Breakdown Pills**: Inline colored badges showing the raw count for each signal category (buy, bullish, neutral, bearish, sell) per ticker.
+    - **KPI Metrics Bar**: Four real-time KPI cards showing total tickers tracked, most bullish ticker (with its score), most bearish ticker (with its score), and most mentioned ticker (with count).
+    - **Cross-Page Research**: Clicking any ticker row triggers the `researchTicker` callback, switching to `#stream` and pre-filtering that ticker — same handoff used by the Handles and Trending Tickers panels.
+    - **Search Filter**: A text input to instantly filter the list by ticker symbol.
+7. **Background Runs Log**: Real-time monitor of scraper cron jobs tracking execution timestamps, new tweets processed, exact model used, and run costs.
+8. **Real-time Sound Notification Alerts**: Emits a retro-futuristic double chime sound when a new high-severity signal (`buy` or `sell`) is processed and appended to the data stream. Built using the browser's native Web Audio API (completely self-contained, zero asset load delay). Includes a persistent audio setting toggle (`SOUNDS ON` / `MUTED`) and a manual `TEST` trigger in the navigation header, fully responsive on all screen sizes.
+9. **Client-Side Pagination**: Feeds on both the Stream (`#stream`) and Handles (`#handles`) pages limit initial visibility to 20 posts at a time to reduce rendering density. A Brutalist-styled "SHOW MORE" button expands the visible list in increments of 20. Crucially, modifying any filter (search queries, active tickers, selected handle, or active signals) automatically resets the pagination back to the first 20 items, pulling dynamically from the fully subscribed local cache.
+10. **Access Control Login Overlay**: Restricts dashboard visibility to authenticated users. When the application is launched, a fullscreen brutalist modal prompt demands an access key, checked against a hardcoded environment variable (`VITE_SITE_PASSWORD`). The application container behind the modal is slightly blurred (`filter: blur(8px)`) with pointer interactions disabled. To deter simple manual browser storage overrides, the login session state is stored under an obfuscated sessionStorage variable (`_at_sys_state_`) using a custom key value.
 
 ---
 

@@ -1521,6 +1521,7 @@ function HandlesPage({
 const PAGES = [
   { id: "stream", label: "Stream", icon: "activity" as keyof typeof Icon },
   { id: "handles", label: "Handles", icon: "users" as keyof typeof Icon },
+  { id: "tickers", label: "Tickers", icon: "pie" as keyof typeof Icon },
 ];
 
 const AUTH_STORAGE_KEY = "_at_sys_state_";
@@ -1529,6 +1530,236 @@ const AUTH_SUCCESS_VALUE = "auth_session_active_7749";
 function readHash() {
   const h = (location.hash || "").replace("#", "");
   return PAGES.some((p) => p.id === h) ? h : "stream";
+}
+
+interface TickersPageProps {
+  recentTweets: ConvexTweet[] | undefined;
+  onResearchTicker: (ticker: string) => void;
+}
+
+function TickersPage({ recentTweets, onResearchTicker }: TickersPageProps) {
+  const [sortBy, setSortBy] = useState<"mentions" | "bullish" | "bearish">("mentions");
+  const [query, setQuery] = useState("");
+
+  // Build per-ticker stats from all tweets
+  const tickerStats = useMemo(() => {
+    const m: Record<string, { total: number; buy: number; bullish: number; neutral: number; bearish: number; sell: number }> = {};
+    if (!recentTweets) return m;
+    recentTweets.forEach((t) => {
+      const list = t.tickers ? t.tickers.split(",").map(tk => tk.trim().toUpperCase()).filter(Boolean) : [];
+      list.forEach((tk) => {
+        if (!m[tk]) m[tk] = { total: 0, buy: 0, bullish: 0, neutral: 0, bearish: 0, sell: 0 };
+        m[tk].total++;
+        const sig = t.signal.toLowerCase();
+        if (sig === "buy") m[tk].buy++;
+        else if (sig === "bullish") m[tk].bullish++;
+        else if (sig === "neutral") m[tk].neutral++;
+        else if (sig === "bearish") m[tk].bearish++;
+        else if (sig === "sell") m[tk].sell++;
+      });
+    });
+    return m;
+  }, [recentTweets]);
+
+  // Enrich with derived scores
+  const enriched = useMemo(() => {
+    return Object.entries(tickerStats).map(([name, s]) => {
+      const bull = s.buy + s.bullish;
+      const bear = s.sell + s.bearish;
+      const score = s.total > 0 ? Math.round(((bull - bear) / s.total) * 100) : 0;
+      return { name, ...s, bull, bear, score };
+    });
+  }, [tickerStats]);
+
+  // KPI values
+  const kpis = useMemo(() => {
+    if (enriched.length === 0) return { total: 0, topBull: null as null | typeof enriched[0], topBear: null as null | typeof enriched[0], topMentioned: null as null | typeof enriched[0] };
+    const byBull = enriched.slice().sort((a, b) => b.bull - a.bull);
+    const byBear = enriched.slice().sort((a, b) => b.bear - a.bear);
+    const byMentions = enriched.slice().sort((a, b) => b.total - a.total);
+    return {
+      total: enriched.length,
+      topBull: byBull[0] ?? null,
+      topBear: byBear[0] ?? null,
+      topMentioned: byMentions[0] ?? null,
+    };
+  }, [enriched]);
+
+  // Filter + sort
+  const rows = useMemo(() => {
+    const q = query.trim().toUpperCase().replace("$", "");
+    const filtered = q ? enriched.filter(r => r.name.includes(q)) : enriched;
+    return filtered.slice().sort((a, b) => {
+      if (sortBy === "bullish") return b.bull - a.bull;
+      if (sortBy === "bearish") return b.bear - a.bear;
+      return b.total - a.total;
+    });
+  }, [enriched, sortBy, query]);
+
+  const isLoading = recentTweets === undefined;
+
+  return (
+    <React.Fragment>
+      {/* METRICS */}
+      <div className="metrics">
+        <div className="metric">
+          <div className="metric-k">
+            <Icon.pie w={13} />
+            <span className="caps">Tickers Tracked</span>
+          </div>
+          <div className="metric-v">{isLoading ? "..." : kpis.total}</div>
+          <div className="metric-sub">unique tickers mentioned</div>
+        </div>
+        <div className="metric accent">
+          <div className="metric-k">
+            <Icon.trend w={13} />
+            <span className="caps">Most Bullish</span>
+          </div>
+          <div className="metric-v">
+            {isLoading ? "..." : kpis.topBull ? (
+              <span style={{ fontSize: "0.7em", fontWeight: 700 }}>${kpis.topBull.name}</span>
+            ) : "—"}
+          </div>
+          <div className="metric-sub">
+            {kpis.topBull ? `${kpis.topBull.bull} bullish mentions` : "no data yet"}
+          </div>
+        </div>
+        <div className="metric">
+          <div className="metric-k">
+            <Icon.activity w={13} />
+            <span className="caps">Most Bearish</span>
+          </div>
+          <div className="metric-v">
+            {isLoading ? "..." : kpis.topBear ? (
+              <span style={{ fontSize: "0.7em", fontWeight: 700 }}>${kpis.topBear.name}</span>
+            ) : "—"}
+          </div>
+          <div className="metric-sub">
+            {kpis.topBear ? `${kpis.topBear.bear} bearish mentions` : "no data yet"}
+          </div>
+        </div>
+        <div className="metric">
+          <div className="metric-k">
+            <Icon.zap w={13} />
+            <span className="caps">Most Mentioned</span>
+          </div>
+          <div className="metric-v">
+            {isLoading ? "..." : kpis.topMentioned ? (
+              <span style={{ fontSize: "0.7em", fontWeight: 700 }}>${kpis.topMentioned.name}</span>
+            ) : "—"}
+          </div>
+          <div className="metric-sub">
+            {kpis.topMentioned ? `${kpis.topMentioned.total} mentions` : "no data yet"}
+          </div>
+        </div>
+      </div>
+
+      {/* MAIN CONTENT */}
+      <div className="main">
+        <section className="panel stream">
+          <div className="panel-head">
+            <h2>
+              <Icon.pie w={14} />
+              Ticker Sentiment
+            </h2>
+            <span className="count">{rows.length}</span>
+            <span className="spacer" />
+          </div>
+
+          {/* TOOLBAR */}
+          <div className="toolbar">
+            <div className="search">
+              <Icon.search w={14} />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="find ticker…"
+              />
+            </div>
+            <div className="filters">
+              <button
+                className={`fbtn ${sortBy === "mentions" ? "active" : ""}`}
+                onClick={() => setSortBy("mentions")}
+              >
+                <Icon.zap w={13} /> Most Mentioned
+              </button>
+              <button
+                className={`fbtn buy ${sortBy === "bullish" ? "active" : ""}`}
+                onClick={() => setSortBy("bullish")}
+              >
+                Most Bullish
+              </button>
+              <button
+                className={`fbtn sell ${sortBy === "bearish" ? "active" : ""}`}
+                onClick={() => setSortBy("bearish")}
+              >
+                Most Bearish
+              </button>
+            </div>
+          </div>
+
+          {/* TICKER LIST */}
+          {isLoading ? (
+            <div className="empty">
+              <Icon.activity w={28} style={{ stroke: "var(--accent)" }} />
+              <div>Loading ticker data...</div>
+            </div>
+          ) : rows.length === 0 ? (
+            <div className="empty">
+              <Icon.search w={28} />
+              <div>No tickers found.</div>
+            </div>
+          ) : (
+            <div className="tk-page-list">
+              {/* Header row */}
+              <div className="tk-page-header">
+                <span className="tkp-rank">#</span>
+                <span className="tkp-name">TICKER</span>
+                <span className="tkp-bar-label">SENTIMENT</span>
+                <span className="tkp-counts">BREAKDOWN</span>
+                <span className="tkp-score">SCORE</span>
+                <span className="tkp-total">MENTIONS</span>
+              </div>
+              {rows.map((r, i) => {
+                const tot = r.total || 1;
+                const bullPct = (r.bull / tot) * 100;
+                const neuPct = (r.neutral / tot) * 100;
+                const bearPct = (r.bear / tot) * 100;
+                const isPos = r.score >= 0;
+                return (
+                  <div
+                    key={r.name}
+                    className="tk-page-row"
+                    onClick={() => onResearchTicker(r.name)}
+                    title={`Click to research $${r.name} in Stream`}
+                  >
+                    <span className="tkp-rank">{i + 1}</span>
+                    <span className="tkp-name">${r.name}</span>
+                    <span className="tkp-bar">
+                      {bullPct > 0 && <i style={{ width: `${bullPct}%`, background: "var(--bull)" }} />}
+                      {neuPct > 0 && <i style={{ width: `${neuPct}%`, background: "var(--neutral)" }} />}
+                      {bearPct > 0 && <i style={{ width: `${bearPct}%`, background: "var(--bear)" }} />}
+                    </span>
+                    <span className="tkp-counts">
+                      <span className="tkpc buy">{r.buy}b</span>
+                      <span className="tkpc bull">{r.bullish}↑</span>
+                      <span className="tkpc neu">{r.neutral}~</span>
+                      <span className="tkpc bear">{r.bearish}↓</span>
+                      <span className="tkpc sell">{r.sell}s</span>
+                    </span>
+                    <span className={`tkp-score ${isPos ? "pos" : "neg"}`}>
+                      {isPos ? "+" : ""}{r.score}
+                    </span>
+                    <span className="tkp-total">{r.total}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+      </div>
+    </React.Fragment>
+  );
 }
 
 export default function App() {
@@ -1892,6 +2123,11 @@ export default function App() {
           recentTweets={recentTweets}
           onResearchTicker={researchTicker}
           formatDate={formatDate}
+        />
+      ) : page === "tickers" ? (
+        <TickersPage
+          recentTweets={recentTweets}
+          onResearchTicker={researchTicker}
         />
       ) : (
         <StreamPage
